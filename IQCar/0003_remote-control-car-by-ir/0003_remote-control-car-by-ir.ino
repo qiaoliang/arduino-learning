@@ -1,7 +1,6 @@
-#include <IRremote.h>
+#include <IRremote.hpp>
 
-IRrecv irrecv_A0(A0);
-decode_results results_A0;  //红外引脚
+#define IR_RECEIVE_PIN A0   //红外引脚号 
 
 long ir_item;
 
@@ -63,32 +62,33 @@ void setup(){
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
-  irrecv_A0.enableIRIn();  // 红外引脚
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // 启动红外接收
 }
 
-void loop(){
-  if (irrecv_A0.decode(&results_A0)) {
-    ir_item=results_A0.value;
-    String type="UNKNOWN";
-    String typelist[14]={"UNKNOWN", "NEC", "SONY", "RC5", "RC6", "DISH", "SHARP", "PANASONIC", "JVC", "SANYO", "MITSUBISHI", "SAMSUNG", "LG", "WHYNTER"};
-    if(results_A0.decode_type>=1&&results_A0.decode_type<=13){
-      type=typelist[results_A0.decode_type];
-    }
-    Serial.print("IR TYPE:"+type+"  ");
-    Serial.println(ir_item,HEX); //用16进制显示
-    irrecv_A0.resume();
-  } else {
-    if (ir_item == 0XFF18E7) {    // 按键 2
+void move(long ir_item){
+    if (ir_item == 0xE718FF00) {    // 按键 2
       go();
-    } else if (ir_item == 0xFF4AB5) { // 按键 8
+    } else if (ir_item == 0xAD52FF00) { // 按键 8
       back();
-    } else if (ir_item == 0xFF10EF) { // 按键 6
+    } else if (ir_item == 0xA55AFF00) { // 按键 6
       right();
-    } else if (ir_item == 0xFF5AA5) { // 按键 4
+    } else if (ir_item == 0xF708FF00) { // 按键 4
       left();
-    } else if (ir_item == 0xFF38C7) { // 按键 6
+    } else if (ir_item == 0xE31CFF00) { // 按键 5
       stop();
     }
+}
+void loginfo(){
+    Serial.println(ir_item,HEX); //用16进制显示的按键值
+    IrReceiver.printIRResultShort(&Serial); // Print complete received data in one line
+}
+void loop(){
+  if (IrReceiver.decode()) {
+    ir_item=IrReceiver.decodedIRData.decodedRawData;
+    loginfo();
+    IrReceiver.resume(); // Enable receiving of the next value
+  } else {
+    move(ir_item);
   }
 
 }
