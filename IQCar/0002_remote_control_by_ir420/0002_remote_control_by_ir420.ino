@@ -1,7 +1,6 @@
 #include <IRremote.hpp>
 
-IRrecv irrecv_A0(A0);
-decode_results results_A0;  //红外引脚
+#define IR_RECEIVE_PIN A0
 
 long ir_item;
 
@@ -42,12 +41,12 @@ void go() {
   rightWheelForward();
 }
 
-void left() {
+void right() {
   rightWheelForward();
   leftWheelStop();
 }
 
-void right() {
+void left() {
   leftWheelForward();
   rightWheelStop();
 }
@@ -63,30 +62,30 @@ void setup(){
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
-  irrecv_A0.enableIRIn();  // 红外引脚
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
 }
 
 void loop(){
-  if (irrecv_A0.decode(&results_A0)) {
-    ir_item=results_A0.value;
-    String type="UNKNOWN";
-    String typelist[14]={"UNKNOWN", "NEC", "SONY", "RC5", "RC6", "DISH", "SHARP", "PANASONIC", "JVC", "SANYO", "MITSUBISHI", "SAMSUNG", "LG", "WHYNTER"};
-    if(results_A0.decode_type>=1&&results_A0.decode_type<=13){
-      type=typelist[results_A0.decode_type];
-    }
-    Serial.print("IR TYPE:"+type+"  ");
+  if (IrReceiver.decode()) {
+    ir_item=IrReceiver.decodedIRData.decodedRawData;
+    // int ir_protocol = IrReceiver.decodedIRData.protocol;  not used at all.
     Serial.println(ir_item,HEX); //用16进制显示
-    irrecv_A0.resume();
+    Serial.println(IrReceiver.decodedIRData.decodedRawData, HEX); // Print "old" raw data
+    // Print out complete received data in one line
+    // and  the output format should be like  'Protocol=NEC Address=0x0 Command=0x5A Raw-Data=0xA55AFF00 32 bits LSB first'
+    // Sometimes, the portocol is 'UNKNOWN', which just is noise signal.
+    IrReceiver.printIRResultShort(&Serial); 
+    IrReceiver.resume(); // Enable receiving of the next value
   } else {
-    if (ir_item == 0XFF18E7) {    // 按键 2
+    if (ir_item == 0xE718FF00/*0XFF18E7*/) {    // 按键 2
       go();
-    } else if (ir_item == 0xFF4AB5) { // 按键 8
+    } else if (ir_item == 0xAD52FF00) { // 按键 8
       back();
-    } else if (ir_item == 0xFF10EF) { // 按键 6
+    } else if (ir_item == 0xA55AFF00) { // 按键 6
       right();
-    } else if (ir_item == 0xFF5AA5) { // 按键 4
+    } else if (ir_item == 0xF708FF00) { // 按键 4
       left();
-    } else if (ir_item == 0xFF38C7) { // 按键 6
+    } else if (ir_item == 0xE31CFF00) { // 按键 5
       stop();
     }
   }
