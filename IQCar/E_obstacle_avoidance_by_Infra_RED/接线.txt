@@ -1,0 +1,11 @@
+左侧红外避障模块
+
+OUT  --  D11
+GND  --  GND
+VCC  --  5V
+
+右侧红外避障模块
+
+OUT  --  D12
+GND  --  GND
+VCC  --  5V
