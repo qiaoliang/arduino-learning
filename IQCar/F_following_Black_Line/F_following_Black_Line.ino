@@ -77,14 +77,14 @@ void move_backward(Rover car) {
 void turn_right(Rover car) {
   Motor_roll(car.rightWheel, Stay);
   Motor_roll(car.leftWheel, Forward);
-  delay(1);   // 右转一下后，马上直行
+  delay(1);   // 右转一下(毫秒)后，马上直行
   Motor_roll(car.rightWheel, Forward);
 }
 // 车子左转
 void turn_left(Rover car) {
   Motor_roll(car.rightWheel, Forward);
   Motor_roll(car.leftWheel, Stay);
-  delay(1);   // 左转一下后，马上直行
+  delay(1);   // 左转一下(毫秒)后，马上直行
   Motor_roll(car.leftWheel, Forward);
 }
 
@@ -116,13 +116,15 @@ void setup() {
 }
 
 void loop() {
-  if (digitalRead(TRACE_LINE_LEFT_PIN) == 0 && digitalRead(TRACE_LINE_RIGHT_PIN) == 0) {         // 左右都在白线内
-    move_forward(car);
-  } else if (digitalRead(TRACE_LINE_LEFT_PIN) == 1 && digitalRead(TRACE_LINE_RIGHT_PIN) == 0) {  // 左在黑线内。右在黑线外
-    turn_right(car);
-  } else if (digitalRead(TRACE_LINE_LEFT_PIN) == 0 && digitalRead(TRACE_LINE_RIGHT_PIN) == 1) {  // 左在黑线外，右在黑线内
-    turn_left(car);
-  } else if (digitalRead(TRACE_LINE_LEFT_PIN) == 1 && digitalRead(TRACE_LINE_RIGHT_PIN) == 1) {  // 左右都不在白线内
+  leftPinSignal = digitalRead(TRACE_LINE_LEFT_PIN);
+  rightPinSignal = digitalRead(TRACE_LINE_RIGHT_PIN);
+  if (leftPinSignal == LOW && rightPinSignal == LOW) {
     stop(car);
+  } else if (leftPinSignal == HIGH && rightPinSignal == LOW) {
+    turn_right(car);
+  } else if (leftPinSignal == LOW && rightPinSignal == HIGH) {
+    turn_left(car);
+  } else if (leftPinSignal == HIGH && rightPinSignal == HIGH) {
+    move_forward(car);
   }
 }
