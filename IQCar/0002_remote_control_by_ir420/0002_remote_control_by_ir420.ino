@@ -2,6 +2,12 @@
 
 #define IR_RECEIVE_PIN A0
 
+#define KEY_2 0xE718FF00
+#define KEY_5 0xE31CFF00
+#define KEY_8 0xAD52FF00
+#define KEY_4 0xF708FF00
+#define KEY_6 0xA55AFF00
+
 long ir_item;
 
 void rightWheelForward(){
@@ -74,20 +80,19 @@ void loop(){
     // Print out complete received data in one line
     // and  the output format should be like  'Protocol=NEC Address=0x0 Command=0x5A Raw-Data=0xA55AFF00 32 bits LSB first'
     // Sometimes, the portocol is 'UNKNOWN', which just is noise signal.
-    IrReceiver.printIRResultShort(&Serial); 
+    // IrReceiver.printIRResultShort(&Serial);
     IrReceiver.resume(); // Enable receiving of the next value
   } else {
-    if (ir_item == 0xE718FF00/*0XFF18E7*/) {    // 按键 2
+    if (ir_item == KEY_2) {    // 按键 2
       go();
-    } else if (ir_item == 0xAD52FF00) { // 按键 8
+    } else if (ir_item == KEY_8) { // 按键 8
       back();
-    } else if (ir_item == 0xA55AFF00) { // 按键 6
+    } else if (ir_item == KEY_6) { // 按键 6
       right();
-    } else if (ir_item == 0xF708FF00) { // 按键 4
+    } else if (ir_item == KEY_4) { // 按键 4
       left();
-    } else if (ir_item == 0xE31CFF00) { // 按键 5
+    } else if (ir_item == KEY_5) { // 按键 5
       stop();
     }
   }
-
 }
