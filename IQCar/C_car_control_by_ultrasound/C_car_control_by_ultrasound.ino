@@ -1,13 +1,16 @@
+// 超声波的引脚
 #define ULTRASOUND_OUT_PIN 2
-#define ULTRASOUND_IN_PIN 3
+#define ULTRASOUND_IN_PIN
+// 车上红外接收遥控器的引脚
 #define IR_RECEIVE_PIN A0
 
-
+// 左右马达的引脚
 #define MOTOR_RIGTH_PIN_1 4
 #define MOTOR_RIGTH_PIN_2 5
 #define MOTOR_LEFT_PIN_1 6
 #define MOTOR_LEFT_PIN_2 7
 
+// 手中红外发射遥控器的键值
 #define KEY_2 0xE718FF00
 #define KEY_5 0xE31CFF00
 #define KEY_8 0xAD52FF00
@@ -25,7 +28,9 @@ struct Motor {
   unsigned int pin2;
 };
 
+// 右马达
 struct Motor RMotor = { MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2 };
+// 左马达
 struct Motor LMotor = { MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2 };
 
 void go_forward(){
@@ -43,11 +48,10 @@ void go_backward(){
   Motor_roll(LMotor, Backward);
 }
 
+// 马达的三种动作
 void Motor_roll(Motor &motor, Direction value){
   switch (value) {
     case Forward:
-      Serial.println(motor.pin1);
-      Serial.println(motor.pin2);
       digitalWrite(motor.pin1, HIGH);
       digitalWrite(motor.pin2, LOW);
       break;
@@ -80,7 +84,6 @@ void band_motor(Motor motor){
 }
 
 void setup() {
-  Serial.begin(9600);     // 初始化并打开串口通信,设置波特率为9600。波特率指每秒传输的二进制位数。
   // 绑定左右马达
   band_motor(RMotor);
   band_motor(LMotor);
@@ -92,11 +95,11 @@ void setup() {
 
 void loop() {
   float dist=checkdistance_By_ultrasound();
-  if ( dist< 6) {
+  if ( dist< 8) { //（ 8 cm 以内）
     go_backward();
-  } else if (dist >= 8 && dist <= 24) {
+  } else if (dist >= 8 && dist <= 24) { // （ 8 到 24 cm 之间）
     go_forward();
-  } else if (dist > 24) {
+  } else if (dist > 24) {  // （ 24 cm 之外）
     stop();
   }
 }
