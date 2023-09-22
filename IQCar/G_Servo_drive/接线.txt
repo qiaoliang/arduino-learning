@@ -1,0 +1,11 @@
+左边寻迹
+AO不接
+DO  --  A2
+GND --  GND
+VCC --  5V
+
+右边寻迹
+AO不接
+DO  --  A1
+GND --  GND
+VCC --  5V
