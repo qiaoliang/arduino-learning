@@ -33,65 +33,36 @@
    插电脑USB3.0调试六轴机械臂勉强能用.可外接 5V2a+手机电源 或其他5V8a电源
 
    舵机三根电线  黄线->接信号(D0~D8),红线->接正极(5V),褐线->接负极(G)
+
+   创客与编程      https://shop104415339.taobao.com/
    四轴机械臂      https://item.taobao.com/item.htm?ft=t&id=634846120104
+   板子与舵机      https://item.taobao.com/item.htm?ft=t&id=665636638155
 */
-/* 
 //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板运行.
-下面是编程环境的建立步骤。
-
-第一步：为你的 Arduino 装上 ESP8266和ESP32的开发板扩展库功能和串口驱动
-Arduino左上角菜单 文件->首选项 出来的设置窗口可以看到  附加开发板管理器网址  添加以下两个网址进去
-https://arduino.esp8266.com/stable/package_esp8266com_index.json,https://dl.espressif.com/dl/package_esp32_index.json
-
-第二步：安装 esp8266 对应的库文件
-
-左上角菜单 工具->开发板->开发板管理器 ，搜  esp8266 ，并安装 esp8266  by ESP8266 Community 最新版本,或者搜  esp32 安装这个  by Espressif Systems 最新版本...
-慢慢等待平台索引下载完成，因为服务器在国外,下载要耐心,,若中断了再重新下载...
-
-第三步：安装本程序所依赖的另外两个库文件
-
-arduino 菜单->项目->加载库->管理库 搜 Blinker 安装.
-arduino 菜单->项目->加载库->管理库 搜 ArduinoJson 安装
-
-第四步：安装esp 8266 板子上所需要的 串口到USB的 CH341 串口驱动
-
-macOS 系统的驱动下载地址：https://www.wch.cn/download/CH341SER_MAC_ZIP.html
-下载后，先解压，再双击安装。安装好以后，再运行。
-安装好以后，你会在 /dev/ 目录下看到两个新设备，这个设备的名字是以 cu. 开头的。 使用 ls /dev/cu.* 命令，会显示类似下面的输出，后面两个就是这个驱动激活的端口。
-
-/dev/cu.BLTH
-/dev/cu.Bluetooth-Incoming-Port
-/dev/cu.usbserial-14120
-/dev/cu.wchusbserial14120
-
-
-第五步：将type-C 口连到板卡上，USB口连接到macOS上。
-
-第六步：在arduino开发环境上配置 board 和 port
-
-在 arduino 菜单 工具->开发板 esp8266 分类中找到 “LOLIN (WEMOS) D1 R2 & mini” 这项选择即可,
-在 arduino 菜单 工具->端口  选中一个在你插入开发板后多出来的 COM (例如：cu.usbserial-14120),如果不对,再换一个选试试...或换一根数据线连电脑
+//arduino 菜单->文件->首选项 添加开发板管理器网址 https://arduino.esp8266.com/stable/package_esp8266com_index.json 
+//再 菜单->开发板->开发板管理器 搜esp8266下载最新版本(3.0.0版起)
+//注意:ESP8266不太好下载，易出错中断,要多试，换时间试，若还下载不来，可参考网盘里 arduino15 文件夹里的说明...
 //请正确选择 菜单->工具->开发板 与 端口COM(需安装CH341串口驱动),8266有好几种板子.选错会导致 pin[6] 变量与板上插口不对应
 
-
-#include <ESP8266WiFi.h>                   //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板才能运行.              
+#include <ESP8266WiFi.h>                   //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板才能运行.
+//#include <WiFiClient.h>                  
 #include <ESP8266WebServer.h>              //小型HTTP网页服务
 #include <ESP8266HTTPUpdateServer.h>       //寄生网页服务,接受 固件.bin 或 系统.bin http://X.X.X.X/upbin Firmware:固件,FileSystem:文件系统
 
 String AP_SSID ="ESP8266";                 //ESP8266自已创建的热点名称
 String AP_PSK  ="12345678";                //热点密码
 
-String STA_SSID ="MYHOME";                 //路由器WIFI或手机电脑的移动热点名称
-String STA_PSK  ="12345678";               //热点密码
+String STA_SSID ="MYHOME";                 //这里写你家路由器WIFI或手机电脑的移动热点名称
+String STA_PSK  ="12345678";               //这里写你家WIFI或手机热点密码
 
 bool Response = false;                     //应答标记 true false.网页请求应该快速回答,但R指令执行动作文件可能要很久.
 ESP8266WebServer        Web(80);           //建立Web服务对象,HTTP端口80
 ESP8266HTTPUpdateServer Updater;           //ESP8266 网络[更新固件]服务
-
 //ESP8266支持WIFI远程更新固件代码，在 arduino菜单 项目->导出已编译的二进制文件 .bin
-//然后，通过手机或PC 连上 esp8266 的wifi， 在浏览器中打开 192.168.1.1， 登录以后，点击页面上的点 [更新固件],帐号 admin 密码12345678，点 Firmware 选择这个 .bin文件，点 Update Firmware 更新固件代码..
+//机械手控制网页里点 [更新固件],帐号 admin 密码12345678，点 Firmware 选择这个 .bin文件，点 Update Firmware 更新固件代码..
 //注意:有些手机的浏览器不支持选择固件文件,请换个网页浏览器或用电脑网页更新固件
 
+//arduino 菜单->项目->加载库->管理库 搜 ArduinoJson 安装.
 #include <ArduinoJson.h>                   //使用Json文件格式做配置文件
 #include "FS.h"                            //ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
 
