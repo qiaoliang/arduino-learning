@@ -181,6 +181,9 @@ void dataRead(const String& data) {            //Blinker.attachData(dataRead) {"
   Cmd = S;         //把未识别指令存到变量,供下次LOOP循环时转给Command()执行
   Blinker.print("millis", millis());
 }
+
+//-----------------------------------------------------------------------
+// 在心跳时，可以输出相关的信息，更新页面
 void heartbeat() {
   static bool first = false;  //True or false
   if (!first) {               //首次通信把IP与信号强度发给服务器
@@ -197,8 +200,6 @@ void heartbeat() {
   Slider2.print(map(newdms[1], 500, 2500, 0, 180));
   Slider3.print(map(newdms[2], 500, 2500, 0, 180));
   Slider4.print(map(newdms[3], 500, 2500, 0, 180));
-  if (ss > 4) Slider5.print(map(newdms[4], 500, 2500, 0, 180));
-  if (ss > 5) Slider6.print(map(newdms[5], 500, 2500, 0, 180));
 }
 //物连网 点灯科技APP 滑动进度条会执行下列事件
 void sliderX(int32_t value) {
@@ -213,14 +214,8 @@ void sliderZ(int32_t value) {
 void sliderE(int32_t value) {
   dataRead("E" + String(value));
 }
-void sliderB(int32_t value) {
-  dataRead("B" + String(value));
-}
-void sliderT(int32_t value) {
-  dataRead("T" + String(value));
-}
 
-//-----------------------------------------------------------------------
+
 //-----------------------------------------------------------------------
 ICACHE_RAM_ATTR void ISR() {
   Autorun = 1;
@@ -241,13 +236,8 @@ void setup() {
   FSInfo info;        //信息
   SPIFFS.info(info);  //取闪存文件系统信息
 
-  Serial.printf("\n闪存.已用:%d字节;可用:%d字节;", info.usedBytes, info.totalBytes);  //已用空间,可用空间
-  //Serial.printf("块大小:%d  页大小:%d",info.blockSize,info.pageSize);                   //存储块大小,存储页大小
-  //Serial.printf("最长文件名:%d  最多可打开:%d\n",info.maxPathLength,info.maxOpenFiles);  //最长文件名,最多可打开文件
-
   loadConfig();  //载入配置文件(如果有),替换一些变量值
   //-------------设置舵机数字插口与脉冲宽度微秒时间,驱动舵机到初始角度---------------
-  if (ss != 4 && ss != 5) ss = 6;                                   //ss 决定程序控制是几轴机械臂
   if (ss == 4 && todms((float)rawdms[2]) < 2000) rawdms[2] = 2490;  //四轴Z舵机默认在 180度 位置
   for (int I = 0; I < ss; I++) {
     S[I].attach(pin[I], 500, 2500);  //绑定针脚,设置信号脉冲宽度范围//S[I].detach();
@@ -261,41 +251,24 @@ void setup() {
   }
 
   pinMode(D1, OUTPUT);  //设置D1为输出模式
-  //---使用D1引脚为脚本启动开关,当D1与 5V正极接触,中断调用 ISR 设置 Autorun=1 运行 Auto.txt 动作脚本文件-----
+  //---使用D1引脚为脚本启动开关, 当D1与 5V正极接触,中断调用 ISR 设置 Autorun=1 运行 Auto.txt 动作脚本文件-----
   digitalWrite(D1, LOW);                                    //设置D1为低电平 LOW状态
   attachInterrupt(digitalPinToInterrupt(D1), ISR, RISING);  //启用硬件中断实时捕获 D1 引脚低电平LOW变为高电平HIGH
-  //---使用D1引脚为脚本启动开关,当D1与GND负极接触,中断调用 ISR 设置 Autorun=1 运行 Auto.txt 动作脚本文件-----
-  //digitalWrite(D1,HIGH);                //设置D1为高电平HIGH状态
-  //attachInterrupt(digitalPinToInterrupt(D1),ISR,FALLING);//启用硬件中断实时捕获 D1 引脚高电平HIGH变为低电平LOW
-  //CHANGE（改变沿，电平从低到高或者从高到低）、RISING（上升沿，电平从低到高）、FALLING（下降沿，电平从高到低）
 
   //-----------------------下面是连接WIFI网络.可以连路由器或电脑与手机的创建的热点网络--------------------
   WiFi.mode(WIFI_AP_STA);  //WIFI_STA=客户端模式，WIFI_AP=热点模式
   if (STA_SSID != "" && STA_PSK != "") {
     Serial.printf("\n连接WIFI.SSID:%S 密码:%S\n", STA_SSID, STA_PSK);  //输出要连到的热点
-    WiFi.begin(STA_SSID, STA_PSK);                                     //开发板连 路由器,手机或电脑创建WIFI无线热点,也可开网页控制机械臂
+    WiFi.begin(STA_SSID, STA_PSK);                                     //开发板连 路由器, 手机或电脑创建WIFI无线热点,也可开网页控制机械臂
     for (int i = 0; i < 15; i++) {                                     //循环十五次共15秒.若连网成功就跳出循环
       if (WiFi.status() == WL_CONNECTED) {                             //成功连网
         IPAddress IP = WiFi.localIP();                                 //获取 DHCP 分配的随机IP地址 192.168.X.X
         String S = IP.toString();                                      //转为字符串IP地址
-        //unsigned int V4=IP.v4();        //提取32位的IP地址
-        /*
-            S.remove(S.lastIndexOf(".")+1);   //提取IP前面字符串 "192.168.X."
-            for(int i=6;i<10;i++){            //"192.168.X." + "6" "7" "8" "9"修改末位为做静态地址
-               IP.fromString(S+String(i));    //新IP存入变量
-               if(WiFi.config(IP,WiFi.gatewayIP(),WiFi.subnetMask())){    //尝试设置静态IP
-                  break;                      //设置静态IP成功,跳出循环
-               }
-            }
-            IP=WiFi.localIP(); //重新提取静态IP地址,可能是 192.168.1.6  192.168.31.6  192.168.43.6
-            S=IP.toString();
-            */
         Serial.printf("IP:%s", S.c_str());     //输出连网得到的IP地址
                                                //很多手机做移动热点时不显示IP地址
-        File F = SPIFFS.open("/ip.txt", "w");  //"w"=重写文件所有内容
+        File F = SPIFFS.open("/ip.txt", "w");  //"w" 重写文件所有内容
         F.print(S);
         F.close();  //保存IP到文件可供查阅;关闭文件
-
         S.replace(".", "-");  //把 192.168.X.X 转成 192-168-X-X 设为网络主机名称
         WiFi.hostname(S);     //修改的名称不一定成功显示.多刷新几次手机里已连接设备 查看
         break;                //连网成功,跳出循环;在同网络里 手机或电脑打开 http://ip/ 就能控制机械臂
@@ -316,7 +289,6 @@ void setup() {
     Serial.printf("\n创建WIFI.SSID:%S", WiFi.softAPSSID());
     Serial.printf(" 密码:%S", WiFi.softAPPSK());
     Serial.printf(" IP:%s", WiFi.softAPIP().toString().c_str());
-    //Serial.print("MAC );Serial.println(WiFi.softAPmacAddress());
   }
 
   //--------------开启WEB网页服务器.支持网页控制------------------------------------------
@@ -349,8 +321,6 @@ void setup() {
     Slider2.attach(sliderY);              //附加 滑动条  事件
     Slider3.attach(sliderZ);              //附加 滑动条  事件
     Slider4.attach(sliderE);              //附加 滑动条  事件
-    if (ss > 4) Slider5.attach(sliderB);  //附加 滑动条  事件
-    if (ss > 5) Slider6.attach(sliderT);  //附加 滑动条  事件
   }
 }
 //-----------------------------------------------------------------------
@@ -365,11 +335,8 @@ void loadConfig() {                           //载入配置文件/config.json�
   F.close();                                  //关闭文件
 
   if (S.length() > 32) {
-    //StaticJsonDocument<1024> doc;          //栈内存JSON文档对象
     DynamicJsonDocument doc(2048);  //堆内存JSON文档对象
     deserializeJson(doc, S);        //把内容装载到JSON对象
-    //serializeJson(doc, Serial);              //输出JSON格式内容到串口
-    //Serial.println();                        //输出换行符
 
     AP_SSID = String(doc["AP_SSID"]);  //读取配置参数到变量
     AP_PSK = String(doc["AP_PSK"]);
@@ -380,13 +347,13 @@ void loadConfig() {                           //载入配置文件/config.json�
 
     ss = doc["ss"];  //ss 4=4轴机械臂,5=5轴机械臂,其他值或6=六轴机械臂
 
-    for (int I = 0; I < ss; I++) {      //读取舵机参数到数组变量
-      const char* C = doc["Servo"][I];  //舵机编号
-      XYZE[I] = *C;
-      pin[I] = doc["pin"][I];                      //舵机GPIO
-      rawdms[I] = todms(float(doc["rawdms"][I]));  //原脉宽 1500=居中90度
-      mindms[I] = todms(float(doc["mindms"][I]));  //最小脉宽微秒值
-      maxdms[I] = todms(float(doc["maxdms"][I]));  //最大脉宽微秒值
+    for (int sNo = 0; sNo < ss; sNo++) {      //读取舵机参数到数组变量
+      const char* C = doc["Servo"][sNo];  //舵机编号
+      XYZE[sNo] = *C;
+      pin[sNo] = doc["pin"][sNo];                      //舵机GPIO
+      rawdms[sNo] = todms(float(doc["rawdms"][sNo]));  //原脉宽 1500=居中90度
+      mindms[sNo] = todms(float(doc["mindms"][sNo]));  //最小脉宽微秒值
+      maxdms[sNo] = todms(float(doc["maxdms"][sNo]));  //最大脉宽微秒值
     }
     Autorun = doc["Autorun"];  //板子通电自动运行Auto.txt次数
     doc.clear();
@@ -394,16 +361,15 @@ void loadConfig() {                           //载入配置文件/config.json�
 }
 //-------------------------------------------------------------
 String output() {               //返回Json格式的所有舵机当前角度信息
-  StaticJsonDocument<256> doc;  //栈内存JSON文档对象
+  StaticJsonDocument<256> doc;  //创建一个栈内存JSON文档对象
 
-  for (int I = 0; I < ss; I++) {
-    String s = String(XYZE[I]);  //舵机编号
-    float v = (float)(newdms[I] - 500.0) / factor;
+  for (int servoNo = 0; servoNo < ss; servoNo++) {
+    String s = String(XYZE[servoNo]);  //舵机编号
+    float v = (float)(newdms[servoNo] - 500.0) / factor;
     doc[s] = String(v, 1);  //输出带1位精度的角度值
   }
   String ret;
   serializeJson(doc, ret);  //单行格式 到变量
-  //serializeJsonPretty(doc,ret);           //多行格式 到变量
   doc.clear();
   return ret;  //{"X":90,"Y":90,"Z":90,"E":90,"B":90,"T":90}
 }
