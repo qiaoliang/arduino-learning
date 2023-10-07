@@ -226,8 +226,6 @@ void setup() {
   Serial.begin(115200);                                     //开启串口通信 波特率115200,串口监视器也要相同波特率,不然会乱码
   pinMode(LED_BUILTIN, OUTPUT);                             //初始化8266开发板LED信号灯的GPIO口为输出.
   digitalWrite(LED_BUILTIN, LOW);                           //Mini ESP8266板LED_BUILTIN=GPIO 2,LOW=亮灯,HIGH=灭灯
-  Serial.printf("\nsetup  LED_BUILTIN:%d\n", LED_BUILTIN);  //输出LED信号灯用的 芯片GPIO编号
-  //注意:Mini D1 ESP8266开发板LED_BUILTIN=GPIO2=D4,为避免冲突,舵机信号线不要插到D4去,上面数组里也没用D4.
 
   //------------ arduino 菜单->工具->Flash Size->4MB(FS:2MB OTA:1019KB) -----------------
   //ESP8266开发板代码.格式化并建立内置闪存文件系统,用来保存 Auto.txt 等机械臂自动化动作指令
@@ -264,7 +262,7 @@ void setup() {
       if (WiFi.status() == WL_CONNECTED) {                             //成功连网
         IPAddress IP = WiFi.localIP();                                 //获取 DHCP 分配的随机IP地址 192.168.X.X
         String S = IP.toString();                                      //转为字符串IP地址
-        Serial.printf("IP:%s", S.c_str());     //输出连网得到的IP地址
+        Serial.printf("IP: %s", S.c_str());     //输出连网得到的IP地址
                                                //很多手机做移动热点时不显示IP地址
         File F = SPIFFS.open("/ip.txt", "w");  //"w" 重写文件所有内容
         F.print(S);
@@ -440,7 +438,7 @@ String splitAndExecuteCmd(String t) {  //拆分多行命令 或以 ; 为分隔�
 //------------------------------------------------------------------------
 //-----------------解析并执行命令 已定义常用命令 ?SDCHRA XYZBE----------------
 String Command(String t) {
-  static int dms[6] = { 0 };         //静态变量,存放上次S保存过的电机位置
+  static int dms[6] = { 0 };         //静态变量,存放上次 S 保存过的电机位置
   static String file = "/Auto.txt";  //静态变量,存放FSDRC命令将操作的文件
 
   int i = 0, j = 0, v = 0;  //定位指令文本中位置
@@ -493,7 +491,7 @@ String Command(String t) {
     }
     return "";
   }
-  if (t.equalsIgnoreCase("SH")) {         //保存XYZBTE舵机当前位置到 H.txt 文件
+  if (t.equalsIgnoreCase("SH")) {         //保存XYZB舵机当前位置到 H.txt 文件
     File F = SPIFFS.open("/H.txt", "w");  //"w"=重写文件所有内容
     F.seek(0);                            //到首位置
     for (int I = 0; I < ss; I++) {        //循环所有舵机变量进行输出保存
@@ -518,7 +516,7 @@ String Command(String t) {
     ret = Test();
     return ret;
   }
-  if (t.equalsIgnoreCase("S")) {  //保存XYZETB电机新角度指令到自动执行文件
+  if (t.equalsIgnoreCase("S")) {  //保存XYZE电机新角度指令到自动执行文件
     ret = "";
     if (S.toInt() > 0) {                   //S xx 转为 delay xx 保存到文件
       ret = "delay " + String(S.toInt());  //保存delay xx到文件
@@ -527,7 +525,6 @@ String Command(String t) {
     } else
       for (int I = 0; I < ss; I++) {  //判断位置发生变化的所有舵机并保存
         if (dms[I] != newdms[I]) {    //判断位置与上次保存后有无发生变化
-          //dms[I]=map(newdms[I],500,2500,0,180);  //转为角度值输出
           if (ret != "") ret += ";";  //如果有多个舵机有转动过,添加 ; 分隔符
           float f = (float)(newdms[I] - 500) / factor;
           ret += XYZE[I] + String(f, 1);  //保存新位置到文件
@@ -624,7 +621,6 @@ String Command(String t) {
   if (1 > Auto.indexOf(".", 1)) Auto = Auto + ".txt";  //比较字符串后缀
   if (SPIFFS.exists(Auto)) {                           //判断动作文件是否存在.若有此文件则执行
     ret = "R " + Auto + "\n";
-    //Serial.println(ret);
     if (Response && Auto != "/H.txt") {  //R指令判断是否有待应答网页请求
       Response = false;                  //标记为已应答
       Web.send(200, "text/plain", ret);  //立即应答,避免长时间挂起网页
@@ -745,20 +741,6 @@ String Test() {  //一个简单的测试底座来回转到的功能
 //---------------接受机械臂网页控制指令函数 -------------------------------
 void command() {  //网址里不能用 + 符号,会变成空格
   String message = "";
-  /*
-  message  ="command() ";
-  message += "URI: ";
-  message += Web.uri();
-  message += "\n方法: ";
-  message += (Web.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\n参数: ";
-  message += Web.args();         //参数 数目
-  message += "\n";
-  for (int i=0;i<Web.args();i++) {                                  //枚举所有参数
-    message += " " + Web.argName(i) + ":" + Web.arg(i) + "\n";  //参数名参数值
-  }
-  Serial.println(message);       //串口输出输信息
-*/
   Autorun = 0;                            //有任何命令时停止自动脚本
   if (Web.args() == 0) {                  //http://ip/command 无指令时返回所有舵机状态
     if (WiFi.status() == WL_CONNECTED) {  //成功连网
@@ -780,14 +762,7 @@ void command() {  //网址里不能用 + 符号,会变成空格
     Serial.println(t);  // 网页脚本XMLHttpRequest发来GET请求把"+"号变成" "空格,而" "空格还是" "空格.
 
     t.replace("_", "+");  // 把"_"恢复为"+"; 网页脚本arg=arg.replace(/\+/g ,"_"); //把'+'替换为'_'
-    /*
-    if(t.substring(1)=="   ")      {t.replace("   "," ++");} // 把 "X   " 恢复为 "X ++"
-    else if(t.substring(1)=="  ")  {t.replace("  " ,"++");}  // 把 "X  "  恢复为 "X++"
-    else if(t.substring(1,3)=="  "){t.replace("  " ," +");}  // 把 "X  5" 恢复为 "X +5"
-    else if(t.substring(1,3)==" -"){ }                       // "X --","X -5","X -500"不做任何处理
-    else if(t.substring(1,2)==" ") {t.replace(" " ,"+");}    // 把 "X 5","X 500" 改为 "X+5","X+500"
-    */
-    //    t.toUpperCase();             // 把指令转为大写
+    
     Serial.print("HTTP指令:");
     Serial.println(t);
     message += "\n" + t + "\n";
@@ -862,38 +837,6 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     maxdms[3] = todms(Web.arg("Emax").toFloat());
     v = (float)(maxdms[3] - 500) / factor;
     doc["maxdms"][3] = String(v, 1);  //输出带1位精度的角度值
-    if (ss >= 5) {
-      doc["Servo"][4] = String(XYZE[4]);  //舵机编号
-      doc["pin"][4] = pin[4];             //舵机GPIO
-
-      rawdms[4] = todms(Web.arg("Braw").toFloat());
-      v = (float)(rawdms[4] - 500) / factor;
-      doc["rawdms"][4] = String(v, 1);  //输出带1位精度的角度值
-
-      mindms[4] = todms(Web.arg("Bmin").toFloat());
-      v = (float)(mindms[4] - 500) / factor;
-      doc["mindms"][4] = String(v, 1);  //输出带1位精度的角度值
-
-      maxdms[4] = todms(Web.arg("Bmax").toFloat());
-      v = (float)(maxdms[4] - 500) / factor;
-      doc["maxdms"][4] = String(v, 1);  //输出带1位精度的角度值
-    }
-    if (ss == 6) {
-      doc["Servo"][5] = String(XYZE[5]);  //舵机编号
-      doc["pin"][5] = pin[5];             //舵机GPIO
-
-      rawdms[5] = todms(Web.arg("Traw").toFloat());
-      v = (float)(rawdms[5] - 500) / factor;
-      doc["rawdms"][5] = String(v, 1);  //输出带1位精度的角度值
-
-      mindms[5] = todms(Web.arg("Tmin").toFloat());
-      v = (float)(mindms[5] - 500) / factor;
-      doc["mindms"][5] = String(v, 1);  //输出带1位精度的角度值
-
-      maxdms[5] = todms(Web.arg("Tmax").toFloat());
-      v = (float)(maxdms[5] - 500) / factor;
-      doc["maxdms"][5] = String(v, 1);  //输出带1位精度的角度值
-    }
     doc["Autorun"] = Web.arg("Auto").toInt();  //板子通电自动运行Auto.txt次数
     doc["null"] = "null";
     Web.sendHeader("Location", "/index.html");
@@ -925,7 +868,7 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     html += "<body>";
     html += "  <center>";
 
-    html += "   <h1>创客与编程-机械臂固件配置</h1>";
+    html += "   <h1>乔帮主的IT视界-机械臂固件配置</h1>";
     html += "   <p>警告:舵机不防堵,转不过去的角度需要最大最小限制,不然会发烫烧坏</P>";
     html += "   <form action='config' method='get'>";
     html += "    <p>";
@@ -993,11 +936,6 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
   }
 }
 
-//------------------------------------------------------------
-//
-//
-//
-//
 //--------------------------------处理文件上传函数-------------------------------------------
 void handleFileUpload() {
   static File F;  //静态变量 文件对象用于文件上传
@@ -1028,7 +966,7 @@ void FileUpload_OK() {
   html += "<html lang='zh-CN'>";
   html += "<head>";
   html += "  <meta  charset='UTF-8'>";
-  html += "  <title>创客与编程</title>";
+  html += "  <title>乔帮主的IT视界</title>";
   html += "</head>";
   html += "<body>";
   html += "  <center>";
