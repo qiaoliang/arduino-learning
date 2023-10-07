@@ -388,7 +388,7 @@ void loop() {
     if (Autorun > 0) Autorun--;  //正数减1次,负数不变
   }
   if (Cmd != "") {        //如果cmd全局变量里有未执行命令,现在执行
-    Cmdret = split(Cmd);  //分析指令并调用Command执行
+    Cmdret = splitAndExecuteCmd(Cmd);  //分析指令并调用Command执行
     Cmd = "";
   }
 
@@ -396,10 +396,9 @@ void loop() {
   if (Serial.available() > 0) {      //有串口数据>0字节
     String t = Serial.readString();  //?SDCHRA XYZBTE
     t.trim();                        //删首尾空格与换行
-                                     //t.toUpperCase();                          //指令转为大写
     Serial.println(t);               //串口回显指令
     Autorun = 0;                     //有命令时停止动作
-    Serial.println(split(t));
+    Serial.println(splitAndExecuteCmd(t));
   }
 }
 
@@ -409,7 +408,7 @@ void loop() {
 // 多命令   X50;Y100;Z100
 // 多行命令 X50;Y100\nZ100;E80
 //---------------------------------------------------
-String split(String t) {  //拆分多行命令 或以 ; 为分隔的多个命令
+String splitAndExecuteCmd(String t) {  //拆分多行命令 或以 ; 为分隔的多个命令
   String ret = "";
   long i[2] = { 0 };  //[0]=; [1]=\n
   do {
@@ -438,12 +437,7 @@ String split(String t) {  //拆分多行命令 或以 ; 为分隔的多个命令
     if (Servo180(-1, 0)) ret = output();
   return ret;
 }
-
-
 //------------------------------------------------------------------------
-//
-//
-//
 //-----------------解析并执行命令 已定义常用命令 ?SDCHRA XYZBE----------------
 String Command(String t) {
   static int dms[6] = { 0 };         //静态变量,存放上次S保存过的电机位置
@@ -461,7 +455,6 @@ String Command(String t) {
     S = t.substring(i + 1);  //提取参数
     S.trim();                //删首尾空格与换行
     t.remove(i);             //保留命令,删除参数
-    //Serial.println("Command.命令:s% 参数:s%\n",t,S);//串口输出拆分出来的命令和参数
   }
 
   //----------------解析执行一些命令 ?SDCHRA --------------------------------
