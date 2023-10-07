@@ -29,24 +29,23 @@ BlinkerSlider Slider1("X");             //滑动条
 BlinkerSlider Slider2("Y");             //滑动条
 BlinkerSlider Slider3("Z");             //滑动条
 BlinkerSlider Slider4("E");             //滑动条
-BlinkerSlider Slider5("B");             //滑动条
-BlinkerSlider Slider6("T");             //滑动条
+
 #include <Ticker.h>                     //定时器 功能库.帮助点灯APP里的按钮按住每秒转10度
 Ticker timer;                           //定时器 对象每100毫秒执行一次,1秒10次。。
-int pressed[6] = { 0, 0, 0, 0, 0, 0 };  //-1 0 +1 定时器扫描这个变量,让各舵机连续转动
+const int ss = 4;                       //4轴
+int pressed[ss] = { 0, 0, 0, 0};  //-1 0 +1 定时器扫描这个变量,让各舵机连续转动
 //---------------------------------------------------------------------------------
 
 
 #include <Servo.h>                                 //引用 舵机 功能库头文件
-Servo S[6];                                        //创建舵机对象
-int ss = 4;                                        //4=4轴,5=5轴,其他值或6=6轴6舵机械臂.此变量值决定使用下面数组几个成员值
-char XYZE[6] = { 'X', 'Y', 'Z', 'E', 'B', 'T' };   //定义6个电机从底座到夹子为 XYZBTE.5轴没有T舵机
-int pin[6] = { D2, D3, D0, D8, D5, D6 };           //开发板的数字针脚用来接6个电机.5轴没有T舵机
-int rawdms[6] = { 90, 90, 90, 90, 90, 90 };        //原点,起点,通电后或H指令会让所有舵机归位到此脉宽.500=0度，1500=居中90度，2500=180度
-int olddms[6] = { 90, 90, 90, 90, 90, 90 };        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
-int newdms[6] = { 90, 90, 90, 90, 90, 90 };        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
-int mindms[6] = { 0, 50, 90, 10, 0, 0 };           //定义6个电机在机械臂中可转动的最小信号脉冲微秒值
-int maxdms[6] = { 180, 180, 180, 100, 180, 180 };  //定义6个电机在机械臂中可转动的最大信号脉冲微秒值
+Servo S[ss];                                        //创建舵机对象
+char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };   //定义6个电机从底座到夹子为 XYZBE
+int pin[ss] = { D2, D3, D0, D8};           //开发板的数字针脚用来接4个电机
+int rawdms[ss] = { 90, 90, 90, 90};        //原点,起点,通电后或H指令会让所有舵机归位到此脉宽.500=0度，1500=居中90度，2500=180度
+int olddms[ss] = { 90, 90, 90, 90};        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
+int newdms[ss] = { 90, 90, 90, 90 };        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
+int mindms[ss] = { 0, 50, 90, 10 };           //定义4个电机在机械臂中可转动的最小信号脉冲微秒值
+int maxdms[ss] = { 180, 180, 180, 100 };  //定义4个电机在机械臂中可转动的最大信号脉冲微秒值
 
 bool Step = true;          //true=减速(1角度1角度的转),false=0=舵机原速转动
 float factor = 11.11;      //每转一度对应的脉冲数，11.11=(2500-500)/180度
@@ -112,7 +111,7 @@ bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微
         }
       } else J++;
     }
-  } while (J != ss); // 直到所有舵机都转到指定位置
+  } while (J < ss); // 直到所有舵机都转到指定位置
 
   // 9克舵机的空载速度是每2000微秒可以转1度 ，而 2000微秒相当于转11.11 个脉冲宽度(因为每转1个脉宽信号，需要消耗182微秒)
   // 计算需要转动时间最长的舵机是否在当前时间里完成了转动。
@@ -343,8 +342,6 @@ void loadConfig() {                           //载入配置文件/config.json�
 
     BlinKey = String(doc["BlinKey"]);  //物联网 点灯.blinke 独立设备 密钥..
 
-    ss = doc["ss"];  //ss 4=4轴机械臂,5=5轴机械臂,其他值或6=六轴机械臂
-
     for (int sNo = 0; sNo < ss; sNo++) {      //读取舵机参数到数组变量
       const char* C = doc["Servo"][sNo];  //舵机编号
       XYZE[sNo] = *C;
@@ -491,7 +488,7 @@ String Command(String t) {
     }
     return "";
   }
-  if (t.equalsIgnoreCase("SH")) {         //保存XYZB舵机当前位置到 H.txt 文件
+  if (t.equalsIgnoreCase("SH")) {         //保存XYZE舵机当前位置到 H.txt 文件
     File F = SPIFFS.open("/H.txt", "w");  //"w"=重写文件所有内容
     F.seek(0);                            //到首位置
     for (int I = 0; I < ss; I++) {        //循环所有舵机变量进行输出保存
@@ -669,7 +666,7 @@ String Command(String t) {
   }
 
 
-  //----------解析XYZBTE电机指令  底座X 前后Y 上下Z 平衡B 旋转T 夹子E
+  //----------解析XYZE电机指令  底座X 前后Y 上下Z 夹子E
   t.toUpperCase();                 //指令转为大写
   for (i = 0; i < ss; i++) {       //循环所有舵机
     if (XYZE[i] == t.charAt(0)) {  //判断指令第1个字符为哪个电机
@@ -682,7 +679,6 @@ String Command(String t) {
           v = newdms[i] + S.toInt();  //tofloat
         }
         Servo180(i, v);  //执行电机指令
-        //Serial.println(v);           //串口输出执行的指令
         return "";
       }
 
@@ -705,8 +701,6 @@ String Command(String t) {
         v = todms(t.toFloat());  //新角度=数字内容值 或 新脉宽值
       }
       Servo180(i, v);  //执行电机指令
-      //Serial.println(i);
-      //Serial.println(v);           //串口输出执行的指令
       return "";
     }
   }
@@ -857,7 +851,7 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     html += "<html lang='zh-CN'>";
     html += "<head>";
     html += "  <meta  charset='UTF-8'>";
-    html += "  <title>创客与编程</title>";
+    html += "  <title>乔帮主的IT视界</title>";
     html += "  <style type='text/css'>";
     html += "    .txt{";
     html += "      width :50px;";
@@ -887,38 +881,26 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     html += "            <input type='text' class='txt'  readonly='readonly' value='Y'>";
     html += "            <input type='text' class='txt'  readonly='readonly' value='Z'>";
     html += "            <input type='text' class='txt'  readonly='readonly' value='E'>";
-    if (ss >= 5)
-      html += "            <input type='text' class='txt'  readonly='readonly' value='B'>";
-    if (ss == 6)
-      html += "            <input type='text' class='txt'  readonly='readonly' value='T'>";
+
     html += "    &nbsp各舵机&nbsp&nbsp编号名称</br>";
     html += "    初始角度:<input type='text' class='txt' name='Xraw' value='" + String((float)(rawdms[0] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Yraw' value='" + String((float)(rawdms[1] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Zraw' value='" + String((float)(rawdms[2] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Eraw' value='" + String((float)(rawdms[3] - 500) / factor, 1) + "'>";
-    if (ss >= 5)
-      html += "            <input type='text' class='txt' name='Braw' value='" + String((float)(rawdms[4] - 500) / factor, 1) + "'>";
-    if (ss == 6)
-      html += "            <input type='text' class='txt' name='Traw' value='" + String((float)(rawdms[5] - 500) / factor, 1) + "'>";
+
     html += "    舵机通电初始角度<br>";
 
     html += "    最小角度:<input type='text' class='txt' name='Xmin' value='" + String((float)(mindms[0] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Ymin' value='" + String((float)(mindms[1] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Zmin' value='" + String((float)(mindms[2] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Emin' value='" + String((float)(mindms[3] - 500) / factor, 1) + "'>";
-    if (ss >= 5)
-      html += "            <input type='text' class='txt' name='Bmin' value='" + String((float)(mindms[4] - 500) / factor, 1) + "'>";
-    if (ss == 6)
-      html += "            <input type='text' class='txt' name='Ymin' value='" + String((float)(mindms[5] - 500) / factor, 1) + "'>";
+
     html += "    舵机最小角度限制<br>";
     html += "    最大角度:<input type='text' class='txt' name='Xmax' value='" + String((float)(maxdms[0] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Ymax' value='" + String((float)(maxdms[1] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Zmax' value='" + String((float)(maxdms[2] - 500) / factor, 1) + "'>";
     html += "            <input type='text' class='txt' name='Emax' value='" + String((float)(maxdms[3] - 500) / factor, 1) + "'>";
-    if (ss >= 5)
-      html += "            <input type='text' class='txt' name='Bmax' value='" + String((float)(maxdms[4] - 500) / factor, 1) + "'>";
-    if (ss == 6)
-      html += "            <input type='text' class='txt' name='Tmax' value='" + String((float)(maxdms[5] - 500) / factor, 1) + "'>";
+
     html += "   舵机最大角度限制<br>";
     html += "    </p>";
 
@@ -1002,7 +984,7 @@ void handleUserRequest() {
     html += "<html lang='zh-CN'>";
     html += "<head>";
     html += "  <meta  charset='UTF-8'>";
-    html += "  <title>创客与编程</title>";
+    html += "  <title>乔帮主的IT视界</title>";
     html += "</head>";
     html += "<body>";
     html += "  <center>";
