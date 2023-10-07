@@ -1,6 +1,9 @@
 #include <ESP8266WiFi.h>              //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板才能运行.
 #include <ESP8266WebServer.h>         //小型HTTP网页服务
 #include <ESP8266HTTPUpdateServer.h>  //寄生网页服务,接受 固件.bin 或 系统.bin http://X.X.X.X/upbin Firmware:固件,FileSystem:文件系统
+#include <ArduinoJson.h>  //使用Json文件格式做配置文件
+#include "FS.h"           //ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
+#include <Servo.h>                                 //引用 舵机 功能库头文件
 
 String AP_SSID = "ESP8266";  //ESP8266自已创建的热点名称
 String AP_PSK = "12345678";  //ESP8266自已Wifi热点的密码
@@ -12,32 +15,7 @@ bool Response = false;            //应答标记 true false.网页请求应该�
 ESP8266WebServer Web(80);         //建立Web服务对象,HTTP端口80
 ESP8266HTTPUpdateServer Updater;  //ESP8266 网络[更新固件]服务
 
-#include <ArduinoJson.h>  //使用Json文件格式做配置文件
-#include "FS.h"           //ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
-
-//----------------点灯科技 物连网 外网控制-填你自已的 独立设备密钥-----------------------
-//arduino 菜单->项目->加载库->管理库 搜 Blinker 安装.
-#define BLINKER_WIFI         //ESP8266,使用WIFI无线网络连互连网到点灯物连网服务器，这里启用了点灯远程平台
-#define BLINKER_WITHOUT_SSL  //ESP8266 堆栈不足要采用非SSL加密方式连网通信，这里启用了点灯远程平台
-#include <Blinker.h>         //引用 点灯科技 物连网功能库,可以通过外网来控制机械臂
-String BlinKey = "";         //点灯.blinker APP里创建 独立设备的密钥 填这里
-
-// 新建组件对象
-BlinkerText Text1("IP");                //标签   组件对象 对象名,无事件
-BlinkerText Text2("RSSI");              //标签   组件对象 对象名,无事件
-BlinkerSlider Slider1("X");             //滑动条
-BlinkerSlider Slider2("Y");             //滑动条
-BlinkerSlider Slider3("Z");             //滑动条
-BlinkerSlider Slider4("E");             //滑动条
-
-#include <Ticker.h>                     //定时器 功能库.帮助点灯APP里的按钮按住每秒转10度
-Ticker timer;                           //定时器 对象每100毫秒执行一次,1秒10次。。
 const int ss = 4;                       //4轴
-int pressed[ss] = { 0, 0, 0, 0};  //-1 0 +1 定时器扫描这个变量,让各舵机连续转动
-//---------------------------------------------------------------------------------
-
-
-#include <Servo.h>                                 //引用 舵机 功能库头文件
 Servo S[ss];                                        //创建舵机对象
 char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };   //定义6个电机从底座到夹子为 XYZBE
 int pin[ss] = { D2, D3, D0, D8};           //开发板的数字针脚用来接4个电机
@@ -58,12 +36,14 @@ String Cmd, Cmdret = "";   //把一些指令放在这个变量,下次loop循环�
 返回值：输入角度所对应的时长，单位是微秒。大于 360时，直接返回，或 500 ， 2500。
 --------------------------------------*/
 int todms(float degree) {  //返回  把角度值转换为维持高电平的时间长度
+  unsigned long pulseWidth;
   if (degree < 360.0) {    //值少于360视为角度,否则，入参被视为时间长度，单位为微秒
-    degree = degree * factor;
-    if ((float)(degree - (int)degree) >= 0.45) degree = degree + 1.0;
-    return 500 + (int)degree;  //180度舵机取值0~180间并转为脉宽，因为500 对应着 0 。
+    unsigned long pulseWidth = degree * factor;
+    if ((float)(pulseWidth - (int)pulseWidth) >= 0.45) degree = degree + 1.0;
+    return 500 + (int)pulseWidth;  //500 对应着起点，即 0 度。
   } else {
-    return constrain((int)degree, 500, 2500);  //取值500~2500间,9克舵机都对应这个数值。
+    pulseWidth = constrain((int)degree, 500, 2500);  //取值500~2500间,9克舵机都对应这个数值。
+    return pulseWidth;
   }
 }
 /*----------------------------------------------------------------------
@@ -149,72 +129,6 @@ void Servo4(int servoNo) {
   }
 }
 
-
-//-------------------------点灯科技 物连网 控制-----------------------------------
-// 点灯APP里创建的独立设备,组件被触发又未绑定专用事件处理函数的,会执行这个函数
-void dataRead(const String& data) {            //Blinker.attachData(dataRead) {"X":109}
-  BLINKER_LOG("dataRead 未附加事件: ", data);  //{"X++":"tap"} {"X--":"press"} {"X--":"pressup"}  x70;y30
-                                               // 按键名:点击     按键名:按住       按键名:松开        滑块和调试组件发来的命令
-  Autorun = 0;                                 //有任何命令时停止自动脚本
-  String S = String(data);
-  int i = S.indexOf("\"", 0);  //区分是按钮事件,还是调试组件发来的控制命令
-  if (i > 0) {
-    S.remove(0, i + 1);
-    int j = S.indexOf("\":\"", 0);
-    if (j > 0) {
-      S.remove(j);  //提取组件名,当机械臂控制命令用
-    } else {
-      S.remove(S.indexOf("\":", 0), 2);
-      S.remove(S.lastIndexOf("}"));
-    }
-  }
-  //--------------------------------------------
-  //如果是查IP的命令，则在文本框中输出 IP 和 wifi 信号强度
-  if (S.equalsIgnoreCase("IP")) { 
-    Text1.print(WiFi.localIP().toString().c_str());
-    Text2.print("RSSI:" + String(WiFi.RSSI()) + "dBm");  //WIFI信号强度
-    return;
-  }
-
-  BLINKER_LOG(S);  //串口输出指令内容
-  Cmd = S;         //把未识别指令存到变量,供下次LOOP循环时转给Command()执行
-  Blinker.print("millis", millis());
-}
-
-//-----------------------------------------------------------------------
-// 在心跳时，可以输出相关的信息，更新页面
-void heartbeat() {
-  static bool first = false;  //True or false
-  if (!first) {               //首次通信把IP与信号强度发给服务器
-    first = true;
-    Text1.print(WiFi.localIP().toString().c_str());
-    Text2.print("RSSI:" + String(WiFi.RSSI()) + "dBm");  //WIFI信号强度
-  }
-
-  if (0 > Cmdret.indexOf("{")) {  //输出上次执行Cmd变量里的指令结果
-    Blinker.print("message", Cmdret);
-    Cmdret = "";
-  }
-  Slider1.print(map(newdms[0], 500, 2500, 0, 180));  //输出各轴舵机当前角度
-  Slider2.print(map(newdms[1], 500, 2500, 0, 180));
-  Slider3.print(map(newdms[2], 500, 2500, 0, 180));
-  Slider4.print(map(newdms[3], 500, 2500, 0, 180));
-}
-//物连网 点灯科技APP 滑动进度条会执行下列事件
-void sliderX(int32_t value) {
-  dataRead("X" + String(value));
-}
-void sliderY(int32_t value) {
-  dataRead("Y" + String(value));
-}
-void sliderZ(int32_t value) {
-  dataRead("Z" + String(value));
-}
-void sliderE(int32_t value) {
-  dataRead("E" + String(value));
-}
-
-
 //-----------------------------------------------------------------------
 ICACHE_RAM_ATTR void ISR() {
   Autorun = 1;
@@ -228,7 +142,7 @@ void setup() {
 
   //------------ arduino 菜单->工具->Flash Size->4MB(FS:2MB OTA:1019KB) -----------------
   //ESP8266开发板代码.格式化并建立内置闪存文件系统,用来保存 Auto.txt 等机械臂自动化动作指令
-  //SPIFFS.format();         //第一次使用 格式化SPIFFS,可清除所有内容
+  SPIFFS.format();         //每次使用 格式化SPIFFS,可清除所有内容。
   SPIFFS.begin();     //开启闪存文件系统
   FSInfo info;        //信息
   SPIFFS.info(info);  //取闪存文件系统信息
@@ -300,25 +214,6 @@ void setup() {
   Web.begin(80);                                       //启动WEB服务器
   Serial.println("\nWeb 网页控制服务器开启");
 
-  //---------------------------初始化 点灯.科技 物连网 外网控制 功能-----------
-  if (WiFi.status() == WL_CONNECTED && 6 < BlinKey.length()) {
-    BLINKER_DEBUG.stream(Serial);  //绑定调试信息输出串口对象
-    BLINKER_LOG("Blinker");
-
-    char KEY[16], SID[32], PSK[32];
-    BlinKey.toCharArray(KEY, 16);   //转为字符数组保存
-    STA_SSID.toCharArray(SID, 32);  //转为字符数组保存
-    STA_PSK.toCharArray(PSK, 32);   //转为字符数组保存
-    Blinker.begin(KEY, SID, PSK);
-    Blinker.setTimezone(8.0);            //设置时区, 如: 北京时间为+8:00
-    Blinker.attachData(dataRead);        //附加 默认回调函数
-    Blinker.attachHeartbeat(heartbeat);  //附加 心跳回调函数,每30s-60会发送一次心跳包
-
-    Slider1.attach(sliderX);              //附加 滑动条  事件
-    Slider2.attach(sliderY);              //附加 滑动条  事件
-    Slider3.attach(sliderZ);              //附加 滑动条  事件
-    Slider4.attach(sliderE);              //附加 滑动条  事件
-  }
 }
 //-----------------------------------------------------------------------
 //
@@ -339,8 +234,6 @@ void loadConfig() {                           //载入配置文件/config.json�
     AP_PSK = String(doc["AP_PSK"]);
     STA_SSID = String(doc["STA_SSID"]);
     STA_PSK = String(doc["STA_PSK"]);
-
-    BlinKey = String(doc["BlinKey"]);  //物联网 点灯.blinke 独立设备 密钥..
 
     for (int sNo = 0; sNo < ss; sNo++) {      //读取舵机参数到数组变量
       const char* C = doc["Servo"][sNo];  //舵机编号
@@ -375,7 +268,6 @@ String output() {               //返回Json格式的所有舵机当前角度信
 //
 //------------------开发板循环调用函数 loop()------------------------
 void loop() {
-  if (6 < BlinKey.length()) Blinker.run();  //处理 点灯科技 物连网 通信数据
   Web.handleClient();                       //处理客户HTTP访问,上传文件,更新固件
 
   if (Autorun != 0) {            //开启循环执行Auto文件命令
@@ -483,7 +375,6 @@ String Command(String t) {
     Servo180(-1, 0);
     while (millis() - ms < v) {  //在要延时的毫秒时间里一直循环
       delay(0);
-      if (0 < BlinKey.length()) Blinker.run();
       Web.handleClient();  //处理客户HTTP访问,上传文件,更新固件
     }
     return "";
@@ -781,7 +672,6 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     doc["AP_PSK"] = Web.arg("AP_PSK");      //控制板要创建的WIFI密码
     doc["STA_SSID"] = Web.arg("STA_SSID");  //控制板要连接的路由器热点
     doc["STA_PSK"] = Web.arg("STA_PSK");    //控制板要连接的路由器密码
-    doc["BlinKey"] = Web.arg("BlinKey");    //物连网 点灯APP 创建的独立设备密钥
     doc["ss"] = ss;
 
     doc["Servo"][0] = String(XYZE[0]);  //舵机编号
@@ -873,9 +763,7 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     html += "    STA_SSID:<input type='text' name='STA_SSID' value='" + STA_SSID + "'>控制板要连接的路由器热点名称<br>";
     html += "    &nbspSTA_PSK:<input type='text' name='STA_PSK' value='" + STA_PSK + "'>路由器热点密码,删除可跳过连接<br>";
     html += "    </p>";
-    html += "    <p>";
-    html += "    &nbsp BlinKey:<input type='text' name='BlinKey' value='" + BlinKey + "'>点灯.blinker APP独立设备密钥<br>";
-    html += "    </p>";
+
     html += "    <p>";
     html += "    舵机编号:<input type='text' class='txt'  readonly='readonly' value='X'>";
     html += "            <input type='text' class='txt'  readonly='readonly' value='Y'>";
