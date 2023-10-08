@@ -116,8 +116,8 @@ void setup() {
 }
 
 void loop() {
-  leftPinSignal = digitalRead(TRACE_LINE_LEFT_PIN);
-  rightPinSignal = digitalRead(TRACE_LINE_RIGHT_PIN);
+  unsigned int leftPinSignal = digitalRead(TRACE_LINE_LEFT_PIN);
+  unsigned int rightPinSignal = digitalRead(TRACE_LINE_RIGHT_PIN);
   if (leftPinSignal == LOW && rightPinSignal == LOW) {
     stop(car);
   } else if (leftPinSignal == HIGH && rightPinSignal == LOW) {
