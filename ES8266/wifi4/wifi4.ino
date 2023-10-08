@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ESP8266WiFi.h>              //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板才能运行.
 #include <ESP8266WebServer.h>         //小型HTTP网页服务
 #include <ESP8266HTTPUpdateServer.h>  //寄生网页服务,接受 固件.bin 或 系统.bin http://X.X.X.X/upbin Firmware:固件,FileSystem:文件系统
@@ -16,24 +17,24 @@ ESP8266WebServer Web(80);         //建立Web服务对象,HTTP端口80
 ESP8266HTTPUpdateServer Updater;  //ESP8266 网络[更新固件]服务
 
 const int ss = 4;                       //4轴
-Servo S[ss];                                        //创建舵机对象
-char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };   //定义6个电机从底座到夹子为 XYZBE
-int pin[ss] = { D2, D3, D0, D8};           //开发板的数字针脚用来接4个电机
-int rawdms[ss] = { 90, 90, 90, 90};        //原点,起点,通电后或H指令会让所有舵机归位到此脉宽.500=0度，1500=居中90度，2500=180度
-int olddms[ss] = { 90, 90, 90, 90};        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
-int newdms[ss] = { 90, 90, 90, 90 };        //每次转动舵机后保存脉宽值到此,作为下次转动的起点.
-int mindms[ss] = { 0, 50, 90, 10 };           //定义4个电机在机械臂中可转动的最小信号脉冲微秒值
-int maxdms[ss] = { 180, 180, 180, 100 };  //定义4个电机在机械臂中可转动的最大信号脉冲微秒值
+Servo S[ss];                                  //创建四个舵机对象
+char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };       //定义4个电机从底座到夹子为 XYZBE
+int pin[ss] = { D2, D3, D0, D8};              //开发板的数字针脚用来接4个电机
+int originPos[ss] = { 90, 90, 90, 90};        //舵机的初始角度
+int lastPos[ss] = { 90, 90, 90, 90};          //舵机上次转动到的角度
+int newPos[ss] = { 90, 90, 90, 90 };          //舵机新的目标角度
+int minPos[ss] = { 0, 50, 90, 10 };           //舵机可转动的最小角度
+int maxPos[ss] = { 180, 180, 180, 100 };      //舵机可转动的最大角度
 
-bool Step = true;          //true=减速(1角度1角度的转),false=0=舵机原速转动
-float factor = 11.11;      //每转一度对应的脉冲数，11.11=(2500-500)/180度
-volatile int Autorun = 0;  //自动运行动作指令开关  0=不运行,> 0为循环运行次数
+bool Step = true;          //true=减速(按 1 度角减速),false=0 舵机原速转动
+float factor = 11.11;      //每转一度对应的脉冲宽度，11.11=(2500-500)/180度
+volatile int Autorun = 0;  //自动执行Auto脚本的次数， 0=不运行 
 String Cmd, Cmdret = "";   //把一些指令放在这个变量,下次loop循环时执行
 
 /*------------------------------
-// 把 0-180 角度值转为对应高电平脉冲信号时间长度
+// 把 0-180 角度值转为对应高电平脉冲信号时间宽度（脉冲宽度）
 输入：degree， 目标角度值
-返回值：输入角度所对应的时长，单位是微秒。大于 360时，直接返回，或 500 ， 2500。
+返回值：输入角度所对应的脉冲宽度，单位是微秒。大于 360时，直接返回，或 500 ， 2500。
 --------------------------------------*/
 int todms(float degree) {  //返回  把角度值转换为维持高电平的时间长度
   unsigned long pulseWidth;
@@ -59,10 +60,10 @@ int todms(float degree) {  //返回  把角度值转换为维持高电平的时�
 bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微秒 之间，对应舵机0°～180°可转角度
   //------------------------------------------------------------------------
   if (servoNo >= 0 && servoNo < ss) {         // 如果是X,Y,Z 和 E 舵机的其中之一
-    if (newdms[servoNo] != olddms[servoNo]) {  //如果上次动作还没有完成
+    if (newPos[servoNo] != lastPos[servoNo]) {  //如果上次动作还没有完成
       Servo180(-1, 0);             //则立即去执行完
     }
-    newdms[servoNo] = constrain(todms(Value), mindms[servoNo], maxdms[servoNo]);  //指定新的目标角度
+    newPos[servoNo] = constrain(todms(Value), minPos[servoNo], maxPos[servoNo]);  //指定新的目标角度
     if (ss == 4) Servo4(servoNo);
     return false;
   }
@@ -74,20 +75,20 @@ bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微
   do {
     J = 0;
     for (int I = 0; I < ss; I++) {                   //检查X，Y，Z，E舵机,找出要转动的
-      if (newdms[I] != olddms[I]) {              //新旧值不同,需要发信号转动
-        int range = abs(newdms[I] - olddms[I]);  //计算当前转到目标的脉宽差
+      if (newPos[I] != lastPos[I]) {              //新旧值不同,需要发信号转动
+        int range = abs(newPos[I] - lastPos[I]);  //计算当前转到目标的脉宽差
         maxms = max(maxms, range);               //支持多舵机同时转动,记下最长的耗时。
         if (Step && range > (int)factor) {       //需要减速，并且 range 大于 1 度对应的时长，
-          if (newdms[I] > olddms[I]) {
-            olddms[I] += (int)factor;  //正转1度
+          if (newPos[I] > lastPos[I]) {
+            lastPos[I] += (int)factor;  //正转1度
           } else {
-            olddms[I] -= (int)factor;  //反转1度
+            lastPos[I] -= (int)factor;  //反转1度
           }
-          S[I].write(olddms[I]);  //向对应的引脚发送信号
+          S[I].write(lastPos[I]);  //向对应的引脚发送信号
           delay(1);
         } else {
-          S[I].write(newdms[I]);  //原速转动,或者角度没有变化时，直接发送目标脉宽信号
-          olddms[I] = newdms[I];  //保存新的脉宽
+          S[I].write(newPos[I]);  //原速转动,或者角度没有变化时，直接发送目标脉宽信号
+          lastPos[I] = newPos[I];  //保存新的脉宽
         }
       } else J++;
     }
@@ -109,23 +110,23 @@ bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微
 // 参数1: servoNo，舵机的序号
 ---------------------------*/
 void Servo4(int servoNo) {  
-  int v = newdms[1] + newdms[2];
+  int v = newPos[1] + newPos[2];
   if (servoNo == 1) {      //控制Y舵机的角度
     if (v < 3350) {  //Y+Z 锐角小于3350脉宽,限值3350;约 30度
-      newdms[2] += 3350 - v;
-      if (newdms[2] > maxdms[2]) newdms[1] += newdms[2] - maxdms[2];
+      newPos[2] += 3350 - v;
+      if (newPos[2] > maxPos[2]) newPos[1] += newPos[2] - maxPos[2];
     }
     if (v > 4550)  //Y+Z 钝角大于4550脉宽,限值4550;约140度
-      newdms[2] -= v - 4550;
-    if (mindms[2] > newdms[2]) newdms[1] -= mindms[2] - newdms[2];
+      newPos[2] -= v - 4550;
+    if (minPos[2] > newPos[2]) newPos[1] -= minPos[2] - newPos[2];
   }
   if (servoNo == 2) {    //控制Z角度
     if (v < 3350)  //Y+Z 锐角小于3350脉宽,限值3350;
-      newdms[1] += 3350 - v;
-    if (newdms[1] > maxdms[1]) newdms[2] += newdms[1] - maxdms[1];
+      newPos[1] += 3350 - v;
+    if (newPos[1] > maxPos[1]) newPos[2] += newPos[1] - maxPos[1];
     if (v > 4550)  //Y+Z 钝角大于4550脉宽,限值4550;
-      newdms[1] -= v - 4550;
-    if (mindms[1] > newdms[1]) newdms[2] -= mindms[1] - newdms[1];
+      newPos[1] -= v - 4550;
+    if (minPos[1] > newPos[1]) newPos[2] -= minPos[1] - newPos[1];
   }
 }
 
@@ -149,15 +150,15 @@ void setup() {
 
   loadConfig();  //载入配置文件(如果有),替换一些变量值
   //-------------设置舵机数字插口与脉冲宽度微秒时间,驱动舵机到初始角度---------------
-  if (ss == 4 && todms((float)rawdms[2]) < 2000) rawdms[2] = 2490;  //四轴Z舵机默认在 180度 位置
+  if (ss == 4 && todms((float)originPos[2]) < 2000) originPos[2] = 2490;  //四轴Z舵机默认在 180度 位置
   for (int I = 0; I < ss; I++) {
     S[I].attach(pin[I], 500, 2500);  //绑定针脚,设置信号脉冲宽度范围//S[I].detach();
-    rawdms[I] = todms((float)rawdms[I]);
-    olddms[I] = rawdms[I];  //rawdms变量拷贝给olddms变量
-    newdms[I] = rawdms[I];  //rawdms变量拷贝给newdms变量
-    mindms[I] = todms((float)mindms[I]);
-    maxdms[I] = todms((float)maxdms[I]);
-    S[I].write(rawdms[I]);  //写入新角度值,控制舵机转动
+    originPos[I] = todms((float)originPos[I]);
+    lastPos[I] = originPos[I];  //originPos
+    newPos[I] = originPos[I];  //originPos
+    minPos[I] = todms((float)minPos[I]);
+    maxPos[I] = todms((float)maxPos[I]);
+    S[I].write(originPos[I]);  //写入新角度值,控制舵机转动
     delay(500);             //等待该舵机转到目标角度.
   }
 
@@ -239,9 +240,9 @@ void loadConfig() {                           //载入配置文件/config.json�
       const char* C = doc["Servo"][sNo];  //舵机编号
       XYZE[sNo] = *C;
       pin[sNo] = doc["pin"][sNo];                      //舵机GPIO
-      rawdms[sNo] = todms(float(doc["rawdms"][sNo]));  //原脉宽 1500=居中90度
-      mindms[sNo] = todms(float(doc["mindms"][sNo]));  //最小脉宽微秒值
-      maxdms[sNo] = todms(float(doc["maxdms"][sNo]));  //最大脉宽微秒值
+      originPos[sNo] = todms(float(doc["originPos"][sNo]));  //原脉宽 1500=居中90度
+      minPos[sNo] = todms(float(doc["minPos"][sNo]));  //最小脉宽微秒值
+      maxPos[sNo] = todms(float(doc["maxPos"][sNo]));  //最大脉宽微秒值
     }
     Autorun = doc["Autorun"];  //板子通电自动运行Auto.txt次数
     doc.clear();
@@ -253,7 +254,7 @@ String output() {               //返回Json格式的所有舵机当前角度信
 
   for (int servoNo = 0; servoNo < ss; servoNo++) {
     String s = String(XYZE[servoNo]);  //舵机编号
-    float v = (float)(newdms[servoNo] - 500.0) / factor;
+    float v = (float)(newPos[servoNo] - 500.0) / factor;
     doc[s] = String(v, 1);  //输出带1位精度的角度值
   }
   String ret;
@@ -348,7 +349,7 @@ String Command(String t) {
   if (t.equalsIgnoreCase("RE")) {  //re 重启开发板
     ESP.restart();                 //软重启
     return "";
-  }
+  }       
   if (t == "?" || t == "？") {                  //？HELP 输出简要的帮助信息
     if (S == "") S = "/HELP.txt";               //? Auto 输出指定文件的内容
     if (!S.startsWith("/")) S = "/" + S;        //比较字符串前缀
@@ -383,7 +384,7 @@ String Command(String t) {
     File F = SPIFFS.open("/H.txt", "w");  //"w"=重写文件所有内容
     F.seek(0);                            //到首位置
     for (int I = 0; I < ss; I++) {        //循环所有舵机变量进行输出保存
-      float f = (float)(newdms[I] - 500) / factor;
+      float f = (float)(newPos[I] - 500) / factor;
       F.printf("%c%.1f\n", XYZE[I], f);  //保存新位置到文件
     }
     F.close();  //关闭文件
@@ -394,8 +395,8 @@ String Command(String t) {
       Command("R H.txt");
       return output();
     } else
-      for (int I = 0; I < ss; I++) {  //无 H.txt 则执行rawdms变量值
-        Servo180(I, rawdms[I]);
+      for (int I = 0; I < ss; I++) {  //无 H.txt 则执行originPos变量值
+        Servo180(I, originPos[I]);
       }
     Servo180(-1, 0);
     return output();
@@ -412,11 +413,11 @@ String Command(String t) {
       ret = S;                             //S Y1500;S R test.txt;直接存到文件
     } else
       for (int I = 0; I < ss; I++) {  //判断位置发生变化的所有舵机并保存
-        if (dms[I] != newdms[I]) {    //判断位置与上次保存后有无发生变化
+        if (dms[I] != newPos[I]) {    //判断位置与上次保存后有无发生变化
           if (ret != "") ret += ";";  //如果有多个舵机有转动过,添加 ; 分隔符
-          float f = (float)(newdms[I] - 500) / factor;
+          float f = (float)(newPos[I] - 500) / factor;
           ret += XYZE[I] + String(f, 1);  //保存新位置到文件
-          dms[I] = newdms[I];             //保存新的X位置下次判断用
+          dms[I] = newPos[I];             //保存新的X位置下次判断用
         }
       }
     if (ret != "") {                    //有 待追加命令
@@ -563,11 +564,11 @@ String Command(String t) {
     if (XYZE[i] == t.charAt(0)) {  //判断指令第1个字符为哪个电机
       if (t.length() == 1) {       //X --;  X ++;  X 1500;
         if (S == "--") {
-          v = newdms[i] - 1;  //新角度=旧角度-1度(约11微秒)
+          v = newPos[i] - 1;  //新角度=旧角度-1度(约11微秒)
         } else if (S == "++") {
-          v = newdms[i] + 1;
+          v = newPos[i] + 1;
         } else {
-          v = newdms[i] + S.toInt();  //tofloat
+          v = newPos[i] + S.toInt();  //tofloat
         }
         Servo180(i, v);  //执行电机指令
         return "";
@@ -575,18 +576,18 @@ String Command(String t) {
 
 
       if (t.charAt(2) == '-') {         //X--    第3个字符
-        v = newdms[i] - (int)factor;    //新角度=旧角度-1度(约11微秒)
+        v = newPos[i] - (int)factor;    //新角度=旧角度-1度(约11微秒)
       } else if (t.charAt(2) == '+') {  //X++    第3个字符
-        v = newdms[i] + (int)factor;    //新角度=旧角度+1度(约11微秒)
+        v = newPos[i] + (int)factor;    //新角度=旧角度+1度(约11微秒)
       } else if (t.charAt(1) == '-') {  //X-?    第2个字符
         t = t.substring(2);             //提取第3个字符与后面的数字内容
 
-        v = newdms[i] - (int)(t.toFloat() * factor);  //新角度=旧角度-N度(约11微秒)
+        v = newPos[i] - (int)(t.toFloat() * factor);  //新角度=旧角度-N度(约11微秒)
       } else if (t.charAt(1) == '+') {                //X+?    第2个字符
         t = t.substring(2);                           //提取第3个字符与后面的数字内容
         float f = t.toFloat() * factor;
         if ((float)(f - (int)f) >= 0.45) f = f + 1.0;
-        v = newdms[i] + (int)f;  //新角度=旧角度+N度(约11微秒)
+        v = newPos[i] + (int)f;  //新角度=旧角度+N度(约11微秒)
       } else {                   //X??? 绝对定位
         t = t.substring(1);      //提取第2个字符与后面的数字内容
         v = todms(t.toFloat());  //新角度=数字内容值 或 新脉宽值
@@ -683,44 +684,44 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     doc["pin"][2] = pin[2];             //舵机GPIO
     doc["pin"][3] = pin[3];             //舵机GPIO
 
-    rawdms[0] = todms(Web.arg("Xraw").toFloat());
-    v = (float)(rawdms[0] - 500) / factor;
-    doc["rawdms"][0] = String(v, 1);  //输出带1位精度的角度值
-    rawdms[1] = todms(Web.arg("Yraw").toFloat());
-    v = (float)(rawdms[1] - 500) / factor;
-    doc["rawdms"][1] = String(v, 1);  //输出带1位精度的角度值
-    rawdms[2] = todms(Web.arg("Zraw").toFloat());
-    v = (float)(rawdms[2] - 500) / factor;
-    doc["rawdms"][2] = String(v, 1);  //输出带1位精度的角度值
-    rawdms[3] = todms(Web.arg("Eraw").toFloat());
-    v = (float)(rawdms[3] - 500) / factor;
-    doc["rawdms"][3] = String(v, 1);  //输出带1位精度的角度值
+    originPos[0] = todms(Web.arg("Xraw").toFloat());
+    v = (float)(originPos[0] - 500) / factor;
+    doc["originPos"][0] = String(v, 1);  //输出带1位精度的角度值
+    originPos[1] = todms(Web.arg("Yraw").toFloat());
+    v = (float)(originPos[1] - 500) / factor;
+    doc["originPos"][1] = String(v, 1);  //输出带1位精度的角度值
+    originPos[2] = todms(Web.arg("Zraw").toFloat());
+    v = (float)(originPos[2] - 500) / factor;
+    doc["originPos"][2] = String(v, 1);  //输出带1位精度的角度值
+    originPos[3] = todms(Web.arg("Eraw").toFloat());
+    v = (float)(originPos[3] - 500) / factor;
+    doc["originPos"][3] = String(v, 1);  //输出带1位精度的角度值
 
-    mindms[0] = todms(Web.arg("Xmin").toFloat());
-    v = (float)(mindms[0] - 500) / factor;
-    doc["mindms"][0] = String(v, 1);  //输出带1位精度的角度值
-    mindms[1] = todms(Web.arg("Ymin").toFloat());
-    v = (float)(mindms[1] - 500) / factor;
-    doc["mindms"][1] = String(v, 1);  //输出带1位精度的角度值
-    mindms[2] = todms(Web.arg("Zmin").toFloat());
-    v = (float)(mindms[2] - 500) / factor;
-    doc["mindms"][2] = String(v, 1);  //输出带1位精度的角度值
-    mindms[3] = todms(Web.arg("Emin").toFloat());
-    v = (float)(mindms[3] - 500) / factor;
-    doc["mindms"][3] = String(v, 1);  //输出带1位精度的角度值
+    minPos[0] = todms(Web.arg("Xmin").toFloat());
+    v = (float)(minPos[0] - 500) / factor;
+    doc["minPos"][0] = String(v, 1);  //输出带1位精度的角度值
+    minPos[1] = todms(Web.arg("Ymin").toFloat());
+    v = (float)(minPos[1] - 500) / factor;
+    doc["minPos"][1] = String(v, 1);  //输出带1位精度的角度值
+    minPos[2] = todms(Web.arg("Zmin").toFloat());
+    v = (float)(minPos[2] - 500) / factor;
+    doc["minPos"][2] = String(v, 1);  //输出带1位精度的角度值
+    minPos[3] = todms(Web.arg("Emin").toFloat());
+    v = (float)(minPos[3] - 500) / factor;
+    doc["minPos"][3] = String(v, 1);  //输出带1位精度的角度值
 
-    maxdms[0] = todms(Web.arg("Xmax").toFloat());
-    v = (float)(maxdms[0] - 500) / factor;
-    doc["maxdms"][0] = String(v, 1);  //输出带1位精度的角度值
-    maxdms[1] = todms(Web.arg("Ymax").toFloat());
-    v = (float)(maxdms[1] - 500) / factor;
-    doc["maxdms"][1] = String(v, 1);  //输出带1位精度的角度值
-    maxdms[2] = todms(Web.arg("Zmax").toFloat());
-    v = (float)(maxdms[2] - 500) / factor;
-    doc["maxdms"][2] = String(v, 1);  //输出带1位精度的角度值
-    maxdms[3] = todms(Web.arg("Emax").toFloat());
-    v = (float)(maxdms[3] - 500) / factor;
-    doc["maxdms"][3] = String(v, 1);  //输出带1位精度的角度值
+    maxPos[0] = todms(Web.arg("Xmax").toFloat());
+    v = (float)(maxPos[0] - 500) / factor;
+    doc["maxPos"][0] = String(v, 1);  //输出带1位精度的角度值
+    maxPos[1] = todms(Web.arg("Ymax").toFloat());
+    v = (float)(maxPos[1] - 500) / factor;
+    doc["maxPos"][1] = String(v, 1);  //输出带1位精度的角度值
+    maxPos[2] = todms(Web.arg("Zmax").toFloat());
+    v = (float)(maxPos[2] - 500) / factor;
+    doc["maxPos"][2] = String(v, 1);  //输出带1位精度的角度值
+    maxPos[3] = todms(Web.arg("Emax").toFloat());
+    v = (float)(maxPos[3] - 500) / factor;
+    doc["maxPos"][3] = String(v, 1);  //输出带1位精度的角度值
     doc["Autorun"] = Web.arg("Auto").toInt();  //板子通电自动运行Auto.txt次数
     doc["null"] = "null";
     Web.sendHeader("Location", "/index.html");
@@ -771,23 +772,23 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     html += "            <input type='text' class='txt'  readonly='readonly' value='E'>";
 
     html += "    &nbsp各舵机&nbsp&nbsp编号名称</br>";
-    html += "    初始角度:<input type='text' class='txt' name='Xraw' value='" + String((float)(rawdms[0] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Yraw' value='" + String((float)(rawdms[1] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Zraw' value='" + String((float)(rawdms[2] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Eraw' value='" + String((float)(rawdms[3] - 500) / factor, 1) + "'>";
+    html += "    初始角度:<input type='text' class='txt' name='Xraw' value='" + String((float)(originPos[0] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Yraw' value='" + String((float)(originPos[1] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Zraw' value='" + String((float)(originPos[2] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Eraw' value='" + String((float)(originPos[3] - 500) / factor, 1) + "'>";
 
     html += "    舵机通电初始角度<br>";
 
-    html += "    最小角度:<input type='text' class='txt' name='Xmin' value='" + String((float)(mindms[0] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Ymin' value='" + String((float)(mindms[1] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Zmin' value='" + String((float)(mindms[2] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Emin' value='" + String((float)(mindms[3] - 500) / factor, 1) + "'>";
+    html += "    最小角度:<input type='text' class='txt' name='Xmin' value='" + String((float)(minPos[0] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Ymin' value='" + String((float)(minPos[1] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Zmin' value='" + String((float)(minPos[2] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Emin' value='" + String((float)(minPos[3] - 500) / factor, 1) + "'>";
 
     html += "    舵机最小角度限制<br>";
-    html += "    最大角度:<input type='text' class='txt' name='Xmax' value='" + String((float)(maxdms[0] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Ymax' value='" + String((float)(maxdms[1] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Zmax' value='" + String((float)(maxdms[2] - 500) / factor, 1) + "'>";
-    html += "            <input type='text' class='txt' name='Emax' value='" + String((float)(maxdms[3] - 500) / factor, 1) + "'>";
+    html += "    最大角度:<input type='text' class='txt' name='Xmax' value='" + String((float)(maxPos[0] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Ymax' value='" + String((float)(maxPos[1] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Zmax' value='" + String((float)(maxPos[2] - 500) / factor, 1) + "'>";
+    html += "            <input type='text' class='txt' name='Emax' value='" + String((float)(maxPos[3] - 500) / factor, 1) + "'>";
 
     html += "   舵机最大角度限制<br>";
     html += "    </p>";
