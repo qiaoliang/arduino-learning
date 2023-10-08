@@ -2,9 +2,9 @@
 #include <ESP8266WiFi.h>              //编译此代码需要先安装ESP8266开发板文件包,并且只能上传到ESP8266芯片的开发板才能运行.
 #include <ESP8266WebServer.h>         //小型HTTP网页服务
 #include <ESP8266HTTPUpdateServer.h>  //寄生网页服务,接受 固件.bin 或 系统.bin http://X.X.X.X/upbin Firmware:固件,FileSystem:文件系统
-#include <ArduinoJson.h>  //使用Json文件格式做配置文件
-#include "FS.h"           //ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
-#include <Servo.h>                                 //引用 舵机 功能库头文件
+#include <ArduinoJson.h>              //使用Json文件格式做配置文件
+#include "FS.h"                       //ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
+#include <Servo.h>                    //引用 舵机 功能库头文件
 
 String AP_SSID = "ESP8266";  //ESP8266自已创建的热点名称
 String AP_PSK = "12345678";  //ESP8266自已Wifi热点的密码
@@ -16,19 +16,19 @@ bool Response = false;            //应答标记 true false.网页请求应该�
 ESP8266WebServer Web(80);         //建立Web服务对象,HTTP端口80
 ESP8266HTTPUpdateServer Updater;  //ESP8266 网络[更新固件]服务
 
-const int ss = 4;                       //4轴
-Servo S[ss];                                  //创建四个舵机对象
-char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };       //定义4个电机从底座到夹子为 XYZBE
-int pin[ss] = { D2, D3, D0, D8};              //开发板的数字针脚用来接4个电机
-int originPos[ss] = { 90, 90, 90, 90};        //舵机的初始角度
-int lastPos[ss] = { 90, 90, 90, 90};          //舵机上次转动到的角度
-int newPos[ss] = { 90, 90, 90, 90 };          //舵机新的目标角度
-int minPos[ss] = { 0, 50, 90, 10 };           //舵机可转动的最小角度
-int maxPos[ss] = { 180, 180, 180, 100 };      //舵机可转动的最大角度
+const int ss = 4;                         //4轴
+Servo S[ss];                              //创建四个舵机对象
+char XYZE[ss] = { 'X', 'Y', 'Z', 'E' };   //定义4个电机从底座到夹子为 XYZBE
+int pin[ss] = { D2, D3, D0, D8 };         //开发板的数字针脚用来接4个电机
+int originPos[ss] = { 90, 90, 90, 90 };   //舵机的初始角度
+int lastPos[ss] = { 90, 90, 90, 90 };     //舵机上次转动到的角度
+int newPos[ss] = { 90, 90, 90, 90 };      //舵机新的目标角度
+int minPos[ss] = { 0, 50, 90, 10 };       //舵机可转动的最小角度
+int maxPos[ss] = { 180, 180, 180, 100 };  //舵机可转动的最大角度
 
 bool Step = true;          //true=减速(按 1 度角减速),false=0 舵机原速转动
 float factor = 11.11;      //每转一度对应的脉冲宽度，11.11=(2500-500)/180度
-volatile int Autorun = 0;  //自动执行Auto脚本的次数， 0=不运行 
+volatile int Autorun = 0;  //自动执行Auto脚本的次数， 0=不运行
 String Cmd, Cmdret = "";   //把一些指令放在这个变量,下次loop循环时执行
 
 /*------------------------------
@@ -38,7 +38,7 @@ String Cmd, Cmdret = "";   //把一些指令放在这个变量,下次loop循环�
 --------------------------------------*/
 int todms(float degree) {  //返回  把角度值转换为维持高电平的时间长度
   unsigned long pulseWidth;
-  if (degree < 360.0) {    //值少于360视为角度,否则，入参被视为时间长度，单位为微秒
+  if (degree < 360.0) {  //值少于360视为角度,否则，入参被视为时间长度，单位为微秒
     unsigned long pulseWidth = degree * factor;
     if ((float)(pulseWidth - (int)pulseWidth) >= 0.45) degree = degree + 1.0;
     return 500 + (int)pulseWidth;  //500 对应着起点，即 0 度。
@@ -50,35 +50,29 @@ int todms(float degree) {  //返回  把角度值转换为维持高电平的时�
 /*----------------------------------------------------------------------
 // 用途：向舵机发送需要转动到的目标角度。
 //      如果上一个动作还没有结束，则继续上一个动作。
-//      如果是第四个舵机（夹取舵机—），需要限制Y轴与Z轴最大钝角与最小锐角。它们与装配角度有关
 // 参数1: servoNo，舵机的序号
 // 参数2: Value，舵机转动的角度
-// 返回值：
-        false，如果是 X，Y，Z 或 E 舵机的话。
 ---------------------------------------------------------------------*/
 
-bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微秒 之间，对应舵机0°～180°可转角度
-  //------------------------------------------------------------------------
-  if (servoNo >= 0 && servoNo < ss) {         // 如果是X,Y,Z 和 E 舵机的其中之一
-    if (newPos[servoNo] != lastPos[servoNo]) {  //如果上次动作还没有完成
-      Servo180(-1, 0);             //则立即去执行完
-    }
-    newPos[servoNo] = constrain(todms(Value), minPos[servoNo], maxPos[servoNo]);  //指定新的目标角度
-    if (ss == 4) Servo4(servoNo);
-    return false;
+void Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微秒 之间，对应舵机0°～180°可转角度
+  if (newPos[servoNo] != lastPos[servoNo]) {  //如果上次动作还没有完成
+    ServoKeepRunning();                       //则立即去执行完
   }
+  newPos[servoNo] = constrain(todms(Value), minPos[servoNo], maxPos[servoNo]);  //指定新的目标角度
+  Servo4(servoNo);  // 限制Y轴与Z轴最大钝角与最小锐角。它们与装配角度有关
+}
 
-  //----------------------------------------------
-  int count = 0;                   //对应的角度值
+bool ServoKeepRunning() {
+  int count = 0;                //对应的角度值
   unsigned long ms = millis();  //记录板子启动到现在的时间
   int J = 0, maxms = 0;
   do {
     J = 0;
-    for (int I = 0; I < ss; I++) {                   //检查X，Y，Z，E舵机,找出要转动的
+    for (int I = 0; I < ss; I++) {                //检查X，Y，Z，E舵机,找出要转动的
       if (newPos[I] != lastPos[I]) {              //新旧值不同,需要发信号转动
         int range = abs(newPos[I] - lastPos[I]);  //计算当前转到目标的脉宽差
-        maxms = max(maxms, range);               //支持多舵机同时转动,记下最长的耗时。
-        if (Step && range > (int)factor) {       //需要减速，并且 range 大于 1 度对应的时长，
+        maxms = max(maxms, range);                //支持多舵机同时转动,记下最长的耗时。
+        if (Step && range > (int)factor) {        //需要减速，并且 range 大于 1 度对应的时长，
           if (newPos[I] > lastPos[I]) {
             lastPos[I] += (int)factor;  //正转1度
           } else {
@@ -87,12 +81,12 @@ bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微
           S[I].write(lastPos[I]);  //向对应的引脚发送信号
           delay(1);
         } else {
-          S[I].write(newPos[I]);  //原速转动,或者角度没有变化时，直接发送目标脉宽信号
+          S[I].write(newPos[I]);   //角度没有变化时，直接发送目标脉宽信号
           lastPos[I] = newPos[I];  //保存新的脉宽
         }
       } else J++;
     }
-  } while (J < ss); // 直到所有舵机都转到指定位置
+  } while (J < ss);  // 直到所有舵机都转到指定位置
 
   // 9克舵机的空载速度是每2000微秒可以转1度 ，而 2000微秒相当于转11.11 个脉冲宽度(因为每转1个脉宽信号，需要消耗182微秒)
   // 计算需要转动时间最长的舵机是否在当前时间里完成了转动。
@@ -109,10 +103,10 @@ bool Servo180(int servoNo, int Value) {  //脉宽高电平 500微秒 到 2500微
 //四轴机械臂 限制Y轴与Z轴最大钝角与最小锐角,与舵机装配角度有关---
 // 参数1: servoNo，舵机的序号
 ---------------------------*/
-void Servo4(int servoNo) {  
+void Servo4(int servoNo) {
   int v = newPos[1] + newPos[2];
-  if (servoNo == 1) {      //控制Y舵机的角度
-    if (v < 3350) {  //Y+Z 锐角小于3350脉宽,限值3350;约 30度
+  if (servoNo == 1) {  //控制Y舵机的角度
+    if (v < 3350) {    //Y+Z 锐角小于3350脉宽,限值3350;约 30度
       newPos[2] += 3350 - v;
       if (newPos[2] > maxPos[2]) newPos[1] += newPos[2] - maxPos[2];
     }
@@ -120,8 +114,8 @@ void Servo4(int servoNo) {
       newPos[2] -= v - 4550;
     if (minPos[2] > newPos[2]) newPos[1] -= minPos[2] - newPos[2];
   }
-  if (servoNo == 2) {    //控制Z角度
-    if (v < 3350)  //Y+Z 锐角小于3350脉宽,限值3350;
+  if (servoNo == 2) {  //控制Z角度
+    if (v < 3350)      //Y+Z 锐角小于3350脉宽,限值3350;
       newPos[1] += 3350 - v;
     if (newPos[1] > maxPos[1]) newPos[2] += newPos[1] - maxPos[1];
     if (v > 4550)  //Y+Z 钝角大于4550脉宽,限值4550;
@@ -137,13 +131,13 @@ ICACHE_RAM_ATTR void ISR() {
 //-----------------------------------------------------------------------
 //------------------开发板通电后初始函数 setup()----------------------------
 void setup() {
-  Serial.begin(115200);                                     //开启串口通信 波特率115200,串口监视器也要相同波特率,不然会乱码
-  pinMode(LED_BUILTIN, OUTPUT);                             //初始化8266开发板LED信号灯的GPIO口为输出.
-  digitalWrite(LED_BUILTIN, LOW);                           //Mini ESP8266板LED_BUILTIN=GPIO 2,LOW=亮灯,HIGH=灭灯
+  Serial.begin(115200);            //开启串口通信 波特率115200,串口监视器也要相同波特率,不然会乱码
+  pinMode(LED_BUILTIN, OUTPUT);    //初始化8266开发板LED信号灯的GPIO口为输出.
+  digitalWrite(LED_BUILTIN, LOW);  //Mini ESP8266板LED_BUILTIN=GPIO 2,LOW=亮灯,HIGH=灭灯
 
   //------------ arduino 菜单->工具->Flash Size->4MB(FS:2MB OTA:1019KB) -----------------
   //ESP8266开发板代码.格式化并建立内置闪存文件系统,用来保存 Auto.txt 等机械臂自动化动作指令
-  SPIFFS.format();         //每次使用 格式化SPIFFS,可清除所有内容。
+  SPIFFS.format();    //每次使用 格式化SPIFFS,可清除所有内容。
   SPIFFS.begin();     //开启闪存文件系统
   FSInfo info;        //信息
   SPIFFS.info(info);  //取闪存文件系统信息
@@ -155,11 +149,11 @@ void setup() {
     S[I].attach(pin[I], 500, 2500);  //绑定针脚,设置信号脉冲宽度范围//S[I].detach();
     originPos[I] = todms((float)originPos[I]);
     lastPos[I] = originPos[I];  //originPos
-    newPos[I] = originPos[I];  //originPos
+    newPos[I] = originPos[I];   //originPos
     minPos[I] = todms((float)minPos[I]);
     maxPos[I] = todms((float)maxPos[I]);
     S[I].write(originPos[I]);  //写入新角度值,控制舵机转动
-    delay(500);             //等待该舵机转到目标角度.
+    delay(500);                //等待该舵机转到目标角度.
   }
 
   pinMode(D1, OUTPUT);  //设置D1为输出模式
@@ -176,11 +170,11 @@ void setup() {
       if (WiFi.status() == WL_CONNECTED) {                             //成功连网
         IPAddress IP = WiFi.localIP();                                 //获取 DHCP 分配的随机IP地址 192.168.X.X
         String S = IP.toString();                                      //转为字符串IP地址
-        Serial.printf("IP: %s", S.c_str());     //输出连网得到的IP地址
-                                               //很多手机做移动热点时不显示IP地址
-        File F = SPIFFS.open("/ip.txt", "w");  //"w" 重写文件所有内容
+        Serial.printf("IP: %s", S.c_str());                            //输出连网得到的IP地址
+                                                                       //很多手机做移动热点时不显示IP地址
+        File F = SPIFFS.open("/ip.txt", "w");                          //"w" 重写文件所有内容
         F.print(S);
-        F.close();  //保存IP到文件可供查阅;关闭文件
+        F.close();            //保存IP到文件可供查阅;关闭文件
         S.replace(".", "-");  //把 192.168.X.X 转成 192-168-X-X 设为网络主机名称
         WiFi.hostname(S);     //修改的名称不一定成功显示.多刷新几次手机里已连接设备 查看
         break;                //连网成功,跳出循环;在同网络里 手机或电脑打开 http://ip/ 就能控制机械臂
@@ -214,7 +208,6 @@ void setup() {
   Updater.setup(&Web, "/upbin", "admin", "12345678");  //开启网络更新固件服务,帐密登陆 http://IP/upbin 第一项Firmware固件更新
   Web.begin(80);                                       //启动WEB服务器
   Serial.println("\nWeb 网页控制服务器开启");
-
 }
 //-----------------------------------------------------------------------
 //
@@ -236,13 +229,13 @@ void loadConfig() {                           //载入配置文件/config.json�
     STA_SSID = String(doc["STA_SSID"]);
     STA_PSK = String(doc["STA_PSK"]);
 
-    for (int sNo = 0; sNo < ss; sNo++) {      //读取舵机参数到数组变量
+    for (int sNo = 0; sNo < ss; sNo++) {  //读取舵机参数到数组变量
       const char* C = doc["Servo"][sNo];  //舵机编号
       XYZE[sNo] = *C;
-      pin[sNo] = doc["pin"][sNo];                      //舵机GPIO
+      pin[sNo] = doc["pin"][sNo];                            //舵机GPIO
       originPos[sNo] = todms(float(doc["originPos"][sNo]));  //原脉宽 1500=居中90度
-      minPos[sNo] = todms(float(doc["minPos"][sNo]));  //最小脉宽微秒值
-      maxPos[sNo] = todms(float(doc["maxPos"][sNo]));  //最大脉宽微秒值
+      minPos[sNo] = todms(float(doc["minPos"][sNo]));        //最小脉宽微秒值
+      maxPos[sNo] = todms(float(doc["maxPos"][sNo]));        //最大脉宽微秒值
     }
     Autorun = doc["Autorun"];  //板子通电自动运行Auto.txt次数
     doc.clear();
@@ -269,13 +262,13 @@ String output() {               //返回Json格式的所有舵机当前角度信
 //
 //------------------开发板循环调用函数 loop()------------------------
 void loop() {
-  Web.handleClient();                       //处理客户HTTP访问,上传文件,更新固件
+  Web.handleClient();  //处理客户HTTP访问,上传文件,更新固件
 
   if (Autorun != 0) {            //开启循环执行Auto文件命令
     Command("R Auto.txt");       //执行 R 命令
     if (Autorun > 0) Autorun--;  //正数减1次,负数不变
   }
-  if (Cmd != "") {        //如果cmd全局变量里有未执行命令,现在执行
+  if (Cmd != "") {                     //如果cmd全局变量里有未执行命令,现在执行
     Cmdret = splitAndExecuteCmd(Cmd);  //分析指令并调用Command执行
     Cmd = "";
   }
@@ -311,18 +304,18 @@ String splitAndExecuteCmd(String t) {  //拆分多行命令 或以 ; 为分隔�
     } else if (i[1] != 0 && i[0] == -1) {   //多行的 无分隔的单个指令
       ret = Command(t.substring(0, i[1]));  //提取单行指令执行
       t.remove(0, i[1] + 1);                //删除已执行的此行
-      if (Servo180(-1, 0)) Serial.println(output());
+      if (ServoKeepRunning()) Serial.println(output());
     } else if (i[0] < i[1]) {               // ; 在 \n 之前
       ret = Command(t.substring(0, i[0]));  //提取一个指令执行
       t.remove(0, i[0] + 1);                //删除已执行指令
     } else if (i[0] > i[1]) {               // \n 在 ; 之前
       ret = Command(t.substring(0, i[1]));  //提取一行指令执行
       t.remove(0, i[1] + 1);                //删除已执行指令
-      if (Servo180(-1, 0)) Serial.println(output());
+      if (ServoKeepRunning()) Serial.println(output());
     } else break;
   } while (t.length() > 0);  //未查找完 继续循环
   if (ret == "")
-    if (Servo180(-1, 0)) ret = output();
+    if (ServoKeepRunning()) ret = output();
   return ret;
 }
 //------------------------------------------------------------------------
@@ -349,7 +342,7 @@ String Command(String t) {
   if (t.equalsIgnoreCase("RE")) {  //re 重启开发板
     ESP.restart();                 //软重启
     return "";
-  }       
+  }
   if (t == "?" || t == "？") {                  //？HELP 输出简要的帮助信息
     if (S == "") S = "/HELP.txt";               //? Auto 输出指定文件的内容
     if (!S.startsWith("/")) S = "/" + S;        //比较字符串前缀
@@ -373,7 +366,7 @@ String Command(String t) {
   if (t.equalsIgnoreCase("delay")) {  //动作脚本中 delay xx 由这段代码执行
     int v = S.toInt();                //delay的参数,即是要延时的毫秒时间
     unsigned long ms = millis();      //板子开机已经过的毫秒时间
-    Servo180(-1, 0);
+    ServoKeepRunning();
     while (millis() - ms < v) {  //在要延时的毫秒时间里一直循环
       delay(0);
       Web.handleClient();  //处理客户HTTP访问,上传文件,更新固件
@@ -398,7 +391,7 @@ String Command(String t) {
       for (int I = 0; I < ss; I++) {  //无 H.txt 则执行originPos变量值
         Servo180(I, originPos[I]);
       }
-    Servo180(-1, 0);
+    ServoKeepRunning();
     return output();
   }
   if (t.equalsIgnoreCase("Test")) {  //执行一段底座左右转动的测试动作
@@ -476,7 +469,7 @@ String Command(String t) {
     return ret;
   }
   if (t.equalsIgnoreCase("UP")) {  //UP and down  你想写啥就写啥,别问我
-    Servo180(-1, 0);
+    ServoKeepRunning();
     ret = "UP..";
     return ret;
   }
@@ -541,17 +534,17 @@ String Command(String t) {
         } else if (i == -1 && j != 0) {   //多行的 无分隔的单个指令
           Command(Auto.substring(0, j));  //提取单行指令执行
           Auto.remove(0, j + 1);          //删除已执行的此行
-          Servo180(-1, 0);
+          ServoKeepRunning();
         } else if (i < j) {               // ; 在 \n 之前
           Command(Auto.substring(0, i));  //提取一个指令执行
           Auto.remove(0, i + 1);          //删除已执行指令
         } else if (i > j) {               // \n 在 ; 之前
           Command(Auto.substring(0, j));  //提取一行指令执行
           Auto.remove(0, j + 1);          //删除已执行指令
-          Servo180(-1, 0);
+          ServoKeepRunning();
         } else break;
       } while (Auto.length() > 0 && Run == Autorun);  //-1=没找到换行 或 运行次数发生变化,结束循环.
-      Servo180(-1, 0);
+      ServoKeepRunning();
     }
     //Serial.println("R end");
     return ret + output();
@@ -648,14 +641,14 @@ void command() {  //网址里不能用 + 符号,会变成空格
     Serial.println(t);  // 网页脚本XMLHttpRequest发来GET请求把"+"号变成" "空格,而" "空格还是" "空格.
 
     t.replace("_", "+");  // 把"_"恢复为"+"; 网页脚本arg=arg.replace(/\+/g ,"_"); //把'+'替换为'_'
-    
+
     Serial.print("HTTP指令:");
     Serial.println(t);
     message += "\n" + t + "\n";
     message += Command(t);  // 解析 并 执行 命令
   }
   if (0 < Web.args())
-    if (Servo180(-1, 0))
+    if (ServoKeepRunning())
       message += output();
   Web.send(200, "text/plain", message);
   Response = false;  //标记已应答
@@ -721,7 +714,7 @@ void Config() {  //保存一些变量中的值到配置文件/config.json
     doc["maxPos"][2] = String(v, 1);  //输出带1位精度的角度值
     maxPos[3] = todms(Web.arg("Emax").toFloat());
     v = (float)(maxPos[3] - 500) / factor;
-    doc["maxPos"][3] = String(v, 1);  //输出带1位精度的角度值
+    doc["maxPos"][3] = String(v, 1);           //输出带1位精度的角度值
     doc["Autorun"] = Web.arg("Auto").toInt();  //板子通电自动运行Auto.txt次数
     doc["null"] = "null";
     Web.sendHeader("Location", "/index.html");
