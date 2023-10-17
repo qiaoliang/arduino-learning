@@ -97,19 +97,37 @@ class Moto{
   int num;
   int state;
   public:
-    Moto(){
-      pin1= MOTOR_LEFT_PIN_1;
-
-    }
     Moto(int p1,int p2,int p3){
       pin1 = p1;
       pin2 = p2;
       pin3 = p3;
       num = 0;
       state =0;
+    // Set the motor control pins to outputs
+      pinMode(p1, OUTPUT);
+      pinMode(p2, OUTPUT);
+      pinMode(p3, OUTPUT);
     }
     void run(){
-
+       analogWrite(pin3, speed(num));
+    }
+    void move(){
+      switch(state){
+      case -1:
+        digitalWrite(pin1, LOW);
+        digitalWrite(pin2, HIGH);
+        analogWrite(pin3, speed(num));
+        break;
+      case 0:
+        digitalWrite(pin1, LOW);
+        digitalWrite(pin2, LOW);
+        break;
+      case 1:
+        digitalWrite(pin1, HIGH);
+        digitalWrite(pin2, LOW);
+        analogWrite(pin3, speed(num));
+        break;
+      }
     }
 };
 
@@ -117,20 +135,18 @@ class Moto{
 
 class Rover{
   int lastState;
-  Moto left;
-  Moto right;
+  Moto *left;
+  Moto *right;
 public:
   static getInstance(){
   }
-  Rover(Moto leftM,Moto rightM){
+  Rover(Moto *leftM,Moto *rightM){
     left = leftM;
     right = rightM;
   }
-  void init(){
-
-  }
-  void keepMove(){
-    left.run();
+  void move(){
+    left->run();
+    right->run();
   }
   void turnRight(){
 
@@ -141,7 +157,8 @@ public:
 };
 Moto left = Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
 Moto right = Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
-Rover rover = Rover(left,right);
+Rover rover = Rover(&left,&right);
+
 struct Car Car_init(){
   struct Motor rightW;
   struct Motor leftW;

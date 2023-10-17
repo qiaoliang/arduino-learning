@@ -51,21 +51,16 @@ ISR(PCINT1_vect){    // 对A4 引脚 中断的处理函数
       Serial.println("KEY_5");
     } else if(ir_item == KEY_STOP) {
       Serial.println("KEY_STOP");
+      
     }
     IrReceiver.resume();                                           // Enable receiving of the next value
   }
 }
 void timerIRS()
 {
-    
+    Serial.println("哈哈");
 }
 
-void IrReceiver_loop(){
-
-
-
-  
-}
 void Timer_init(){
   Timer1.initialize(10000); //10ms
   Timer1.attachInterrupt(timerIRS);
@@ -76,8 +71,7 @@ void setup() {
   //Timer_init();
   IrReceiver.begin(IR_RECEIVE_PIN); // 绑定遥控器接收模块
   IrReceiver_ISR_init();
-  rover.init();
-  rover.keepMove();
+  rover.move();
 }
 void trace_loop(){
   unsigned char trace_signal = digitalRead(TRACE_PIN4);
