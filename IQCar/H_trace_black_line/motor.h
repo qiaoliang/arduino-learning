@@ -24,6 +24,7 @@ int speed(int speedValue){
     return speedValue;
 };
 
+
 struct Motor {
     unsigned int pin1;  // 电源正引脚 1
     unsigned int pin2;  // 电源负引脚 2
@@ -88,6 +89,59 @@ keepMove(struct Car *myCar){
   Motor_speedup(&(myCar->right));
 }
 
+
+class Moto{
+  int pin1;
+  int pin2;
+  int pin3;
+  int num;
+  int state;
+  public:
+    Moto(){
+      pin1= MOTOR_LEFT_PIN_1;
+
+    }
+    Moto(int p1,int p2,int p3){
+      pin1 = p1;
+      pin2 = p2;
+      pin3 = p3;
+      num = 0;
+      state =0;
+    }
+    void run(){
+
+    }
+};
+
+
+
+class Rover{
+  int lastState;
+  Moto left;
+  Moto right;
+public:
+  static getInstance(){
+  }
+  Rover(Moto leftM,Moto rightM){
+    left = leftM;
+    right = rightM;
+  }
+  void init(){
+
+  }
+  void keepMove(){
+    left.run();
+  }
+  void turnRight(){
+
+  }
+  void trunLeft(){
+
+  }
+};
+Moto left = Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
+Moto right = Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
+Rover rover = Rover(left,right);
 struct Car Car_init(){
   struct Motor rightW;
   struct Motor leftW;
