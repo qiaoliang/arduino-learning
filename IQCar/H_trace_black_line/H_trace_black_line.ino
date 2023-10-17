@@ -21,18 +21,51 @@
 #define KEY_8 0xAD52FF00
 #define KEY_4 0xF708FF00
 #define KEY_6 0xA55AFF00
+#define KEY_STOP 0xBB44FF00
 
 
 #define OBS_PIN1  12      // 右红外避障的引脚
 #define OBS_PIN2  0       // 左红外避障的引脚
 
 struct Car myCar = Car_init();
+long ir_item;
 
-void timerIRS()
-{
-    Serial.println("interrupt");
+void IrReceiver_ISR_init(){   // 初始化A4引脚中断
+  PCICR |=0x02;  // Enable PCIE Port C，端口等参见  https://blog.csdn.net/acktomas/article/details/128230329
+  PCMSK1 |=0x10;  // 引脚 A4
 }
 
+ISR(PCINT1_vect){    // 对A4 引脚 中断的处理函数
+    if (IrReceiver.decode()) {
+    ir_item = IrReceiver.decodedIRData.decodedRawData;             // 得到接收到的按键值
+    Serial.println(ir_item, HEX);                                  //用16进制显示
+    if (ir_item == KEY_2) {  // 按键 2
+     Serial.println("KEY_2");
+    } else if (ir_item == KEY_8) {  // 按键 8
+      Serial.println("KEY_8");
+    } else if (ir_item == KEY_6) {  // 按键 6
+      Serial.println("KEY_6");
+    } else if (ir_item == KEY_4) {  // 按键 4
+      Serial.println("KEY_4");
+    } else if (ir_item == KEY_5) {  // 按键 5
+      Serial.println("KEY_5");
+    } else if(ir_item == KEY_STOP) {
+      Serial.println("KEY_STOP");
+    }
+    IrReceiver.resume();                                           // Enable receiving of the next value
+  }
+}
+void timerIRS()
+{
+    
+}
+
+void IrReceiver_loop(){
+
+
+
+  
+}
 void Timer_init(){
   Timer1.initialize(10000); //10ms
   Timer1.attachInterrupt(timerIRS);
@@ -40,8 +73,9 @@ void Timer_init(){
 
 void setup() {
   Serial.begin(9600);
-  Timer_init();
+  //Timer_init();
   IrReceiver.begin(IR_RECEIVE_PIN); // 绑定遥控器接收模块
+  IrReceiver_ISR_init();
   rover.init();
   rover.keepMove();
 }
