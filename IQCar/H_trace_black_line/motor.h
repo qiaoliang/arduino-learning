@@ -67,8 +67,10 @@ class Moto{
         analogWrite(pin3, speed(num));
         break;
       case 0:
+        Serial.println(state);
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
+        analogWrite(pin3, speed(num));
         break;
       case 1:
         Serial.println("forward"); 

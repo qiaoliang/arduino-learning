@@ -10,7 +10,7 @@
 #define KEY_STOP 0xBB44FF00
 
 long ir_item;
-
+extern Rover* rover;          // 在主文件中已经声明并初始化了
 void IrReceiver_ISR_init(){   // 初始化A4引脚中断
   IrReceiver.begin(IR_RECEIVE_PIN); // 绑定遥控器接收模块
   PCICR |=0x02;  // Enable PCIE Port C，端口等参见  https://blog.csdn.net/acktomas/article/details/128230329
@@ -33,7 +33,7 @@ void IrReciver_exec(){
       Serial.println("KEY_5");
     } else if(ir_item == KEY_STOP) {
       Serial.println("KEY_STOP");
-      
+      rover->stop();
     }
     IrReceiver.resume();                                           // Enable receiving of the next value
   }
