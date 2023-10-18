@@ -7,11 +7,7 @@
 #include "timer1.h"
 #include "motor.h"
 #include "ircontrol.h"
-
-#define TRACE_PIN1  A0  // 寻迹引脚右1
-#define TRACE_PIN2  A1  // 寻迹引脚右2
-#define TRACE_PIN3  A2  // 寻迹引脚右3
-#define TRACE_PIN4  A3  // 寻迹引脚右4
+#include "tracesensor.h"
 
 
 #define OBS_PIN1  12      // 右红外避障的引脚
@@ -30,25 +26,7 @@ void setup() {
   IrReceiver_ISR_init();
   rover->lauch();
 }
-void trace_loop(){
-  unsigned char trace_signal = digitalRead(TRACE_PIN4);
-  trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN3);
-  trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN2);
-  trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN1);
-    Serial.println(trace_signal);
-  if (trace_signal == 0B0000) {
-    //stop(car);
-  }
-  if (trace_signal == 0b1100) {
-    //turn_right(car);
-  }
-  if (trace_signal == 0b0011) {
-    //turn_left(car);
-  }
-  if (trace_signal == 0b0110) {
-    //move_forward(car);
-  }
-}
+
 void loop() {
   rover->act();
 }

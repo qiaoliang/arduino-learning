@@ -1,8 +1,14 @@
 #include <TimerOne.h>
 
+extern void trace_check();
+int count =1;
 void timerIRS()
 {
-    //Serial.println("哈哈");
+
+  (++count)%=100;
+
+  if(count ==0)
+    trace_check();
 }
 
 void Timer1_init(){

@@ -21,35 +21,45 @@ enum Status {
 };
 
 int speed(int speedValue){
-    return speedValue;
+  if(speedValue ==0) return 0;
+  return 100+75*speedValue;
 };
-
 
 class Moto{
   int pin1;
   int pin2;
   int pin3;
-  int num;
-  int state;
+  int lastnum,num =0;  // 0,1(100),2(175),3(250)
+  int laststate,state=0;  //0 stop, -1 backward, 1, forward
   public:
     Moto(int p1,int p2,int p3){
       pin1 = p1;
       pin2 = p2;
-      pin3 = p3;
-      num = 0;     // 0 -0,1
-      state =0;    //0 stop, -1 backward, 1, forward
+      pin3 = p3; 
     // Set the motor control pins to outputs
       pinMode(p1, OUTPUT);
       pinMode(p2, OUTPUT);
       pinMode(p3, OUTPUT);
     }
+    void powerDown(){
+      if(num > 0 )  num--;
+      act();
+    }
+    void powerUp(){
+      if(num < 3 ) num++;
+      act();
+    }
     void backward(){
-      num = 255;
+      lastnum = num;
+      num = 2;
+      laststate = state;
       state = -1;
       act();
     }
     void forward(){
-      num = 255;
+      lastnum = num;
+      num = 2;
+      laststate = state;
       state = 1;
       act();
     }
@@ -58,26 +68,23 @@ class Moto{
       state = 0;
       act();
     }
-
     void act(){
+      //if(lastnum!=num) Serial.println(num);
+      //if(laststate!=state) Serial.println(state);     
       switch(state){
       case -1:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, HIGH);
         analogWrite(pin3, speed(num));
         break;
-      case 0:
-        Serial.println(state);
+      case 0:  
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
         analogWrite(pin3, speed(num));
         break;
       case 1:
-        Serial.println("forward"); 
         digitalWrite(pin1, HIGH);
         digitalWrite(pin2, LOW);
-        Serial.println(num);
-        Serial.println(state);
         analogWrite(pin3, speed(num));
         break;
       }
@@ -86,12 +93,12 @@ class Moto{
 
 class Rover{
   int lastState;
-  Moto *left;
-  Moto *right;
+  Moto *lMotor;
+  Moto *rMotor;
 public:
-  Rover(Moto* l, Moto* r) : left(l), right(r) {
-    left = l;
-    right = r;
+  Rover(Moto* l, Moto* r) : lMotor(l), rMotor(r) {
+    lMotor = l;
+    rMotor = r;
   }
   static Rover* getInstance() {
     Moto* l = new Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
@@ -99,16 +106,24 @@ public:
     return new Rover(l,r);
   }
   void lauch(){
-    left->forward();
-    right->forward();
+    lMotor->forward();
+    rMotor->forward();
+  }
+  void left(){
+    lMotor->powerDown();
+    rMotor->powerUp();
+  }
+  void right(){
+    lMotor->powerUp();
+    rMotor->powerDown();
   }
   void act(){
-    left->act();
-    right->act();
+    lMotor->act();
+    rMotor->act();
   }
   void stop(){
-    left->stop();
-    right->stop();
+    lMotor->stop();
+    rMotor->stop();
   }
 };
 

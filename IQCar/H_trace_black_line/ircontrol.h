@@ -21,17 +21,7 @@ void IrReciver_exec(){
   if (IrReceiver.decode()) {
     ir_item = IrReceiver.decodedIRData.decodedRawData;             // 得到接收到的按键值
     Serial.println(ir_item, HEX);                                  //用16进制显示
-    if (ir_item == KEY_2) {  // 按键 2
-     Serial.println("KEY_2");
-    } else if (ir_item == KEY_8) {  // 按键 8
-      Serial.println("KEY_8");
-    } else if (ir_item == KEY_6) {  // 按键 6
-      Serial.println("KEY_6");
-    } else if (ir_item == KEY_4) {  // 按键 4
-      Serial.println("KEY_4");
-    } else if (ir_item == KEY_5) {  // 按键 5
-      Serial.println("KEY_5");
-    } else if(ir_item == KEY_STOP) {
+    if(ir_item == KEY_STOP) {
       Serial.println("KEY_STOP");
       rover->stop();
     }
