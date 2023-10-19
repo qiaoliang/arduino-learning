@@ -2,7 +2,7 @@
 #define MOTOR_H
 
 #include <Arduino.h>
-
+#include <stdio.h>
 // 车上马达 A 的引脚连接
 #define MOTOR_RIGTH_PIN_1 6
 #define MOTOR_RIGTH_PIN_2 7
@@ -14,78 +14,62 @@
 
 #define SPEEDUNIT 50
 #define MAX_SPEED 3
+
+static uint8_t POSITIONS[3][2] = { { LOW, LOW }, { HIGH, LOW }, { LOW, HIGH } };
+static uint8_t SPEEDS[4] = { 0, 100, 175, 250 };
 class Moto {
+  unsigned char name; 
   int pin1;
   int pin2;
   int pin3;
-  int lastnum, num = 0;      // 0,1(100),2(175),3(250)
-  int laststate, state = 0;  //0 stop, -1 backward, 1, forward
+  int curPos = 0;
+  int curGear = 0;
 public:
   Moto(int p1, int p2, int p3) {
     pin1 = p1;
     pin2 = p2;
     pin3 = p3;
     // Set the motor control pins to outputs
-    pinMode(p1, OUTPUT);
-    pinMode(p2, OUTPUT);
+    pinMode(pin1, OUTPUT);
+    pinMode(pin2, OUTPUT);
   }
-  void powerDown() {
-    if (num > 0) {
-      lastnum = num;
-    }
+  void setName(unsigned char value){
+    name = value;
   }
-  void powerUp() {
-      num += 1;
+  void speedDown() {
+    curGear = curGear > 0 ? curGear - 1 : curGear;
+    act();
+  }
+  void speedUp() {
+    curGear = curGear < 3 ? curGear + 1 : curGear;
+    act();
   }
   void stop() {
-  digitalWrite(pin1,LOW);
-  digitalWrite(pin2,LOW);
-  analogWrite(pin3,0);
+    curPos = 0;
+    curGear = 0;
+    act();
   }
   void backward() {
-  digitalWrite(pin1,LOW);
-  digitalWrite(pin2,HIGH);
-  analogWrite(pin3,200);
+    curPos = 2;
+    curGear = curGear != 0 ? curGear : 1;
+    act();
   }
   void forward() {
-  digitalWrite(pin1,HIGH);
-  digitalWrite(pin2,LOW);
-  analogWrite(pin3,200);
+    curPos = 1;
+    curGear = curGear != 0 ? curGear : 1;
+    act();
   }
-  void speed(int number) {
-    num = 200;
+  
+ char* currentState() {
+    char* result = (char*)malloc(10 * sizeof(char));;
+    sprintf(result, "%c - %d : %d\n", name,curPos,curGear);
+    return result;
   }
-  void start() {
-    laststate = state;
-    state = 1;
-    lastnum = num;
-    num = 1;
-  }
+private:
   void act() {
-    switch (state) {
-      case 0:
-        digitalWrite(pin1, LOW);
-        digitalWrite(pin2, LOW);
-        analogWrite(pin3, 0);
-        break;
-      case 1:
-        digitalWrite(pin1, HIGH);
-        digitalWrite(pin2, LOW);
-        analogWrite(pin3, 200);
-        break;
-    }
-  }
-  int getNum() {
-    return num;
-  }
-  int getLastNum() {
-    return lastnum;
-  }
-  int getState() {
-    return state;
-  }
-  int getLastState() {
-    return laststate;
+    digitalWrite(pin1, POSITIONS[curPos][0]);
+    digitalWrite(pin2, POSITIONS[curPos][1]);
+    analogWrite(pin3, SPEEDS[curGear]);
   }
 };
 class Rover {
@@ -122,16 +106,13 @@ public:
     lMotor->stop();
     rMotor->stop();
   }
-  void printState() {
-    Serial.print("Left: ");
-    pState(lMotor);
-    Serial.print("Right: ");
-    pState(rMotor);
+  void powerUp() {
+    lMotor->speedUp();
+    rMotor->speedUp();
   }
-  void pState(Moto* moto) {
-    Serial.print(moto->getState());
-    Serial.print(":");
-    Serial.println(moto->getNum());
+  void powerDown() {
+    lMotor->speedDown();
+    rMotor->speedDown();
   }
 };
 

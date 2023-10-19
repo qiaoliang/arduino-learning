@@ -23,7 +23,6 @@ uint8_t trace_signal,lastTrace=0;
 void trace_check(){
     if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 0) {
     rover->stop();
-
   } else if (digitalRead(TRACE_PIN3) == 1 && digitalRead(TRACE_PIN2) == 0) {
     rover->right();
   } else if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 1) {
