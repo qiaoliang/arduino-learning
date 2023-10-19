@@ -4,13 +4,13 @@
 #include <Arduino.h>
 
 // 车上马达 A 的引脚连接
-#define MOTOR_RIGTH_PIN_1 4
-#define MOTOR_RIGTH_PIN_2 5
-#define MOTOR_ENA 6
+#define MOTOR_RIGTH_PIN_1 7
+#define MOTOR_RIGTH_PIN_2 8
+#define MOTOR_ENA 9
 
-#define MOTOR_LEFT_PIN_1 7
-#define MOTOR_LEFT_PIN_2 8
-#define MOTOR_ENB 9
+#define MOTOR_LEFT_PIN_1 4
+#define MOTOR_LEFT_PIN_2 5
+#define MOTOR_ENB 6
 #define SPEEDUNIT 50
 #define MAX_SPEED 3
 
@@ -47,7 +47,7 @@ public:
     }
   }
   void powerUp() {
-    if (num < 3) {
+    if (num < MAX_SPEED) {
       lastnum = num;
       num+=1;
     }
@@ -59,10 +59,18 @@ public:
   void backward() {
     laststate = state;
     state = -1;
+    if(num==0){
+      lastnum=num;
+      num=num+1;
+    }
   }
   void forward() {
     laststate = state;
     state = 1;
+    if(num==0){
+      lastnum=num;
+      num=num+1;
+    }
   }
   void setSpeed(int number) {
     lastnum = num;
@@ -73,6 +81,12 @@ public:
     state = 0;
     lastnum = num;
     num = 0;
+  }
+  void start() {
+    laststate = state;
+    state = 1;
+    lastnum = num;
+    num = 1;
   }
   void act() {
     switch (state) {
@@ -89,7 +103,7 @@ public:
         digitalWrite(pin2, LOW);
         break;
     }
-    analogWrite(pin3, speed(num));
+    analogWrite(pin3, speed(this->num));
   }
   int getNum() {
     return num;
@@ -123,31 +137,21 @@ public:
     return new Rover(l, r);
   }
   void powerUp() {
-    syncSpeed();
     lMotor->powerUp();
     rMotor->powerUp();
   }
   void powerDown() {
-    syncSpeed();
     lMotor->powerDown();
     rMotor->powerDown();
   }
-  void syncSpeed() {
-    int lnum = lMotor->getNum();
-    int rnum = rMotor->getNum();
-    if(lnum!=rnum){
-      int speed = lnum > rnum ? lnum : rnum;
-      lMotor->setSpeed(speed);
-      rMotor->setSpeed(speed);
-    }
-  }
+
   void left() {
-    lMotor->powerOff();
-    rMotor->powerUp();
+    lMotor->stop();
+    rMotor->start();
   }
   void right() {
-    lMotor->powerUp();
-    rMotor->powerOff();
+    lMotor->start();
+    rMotor->stop();
   }
   void forward() {
     lMotor->forward();
