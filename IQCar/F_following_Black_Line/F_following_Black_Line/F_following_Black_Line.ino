@@ -30,34 +30,23 @@ public:
   void powerUp() {
       num += 1;
   }
-  void powerOff() {
-    lastnum = num;
-    num = 0;
+  void stop() {
+  digitalWrite(pin1,LOW);
+  digitalWrite(pin2,LOW);
+  analogWrite(pin3,0);
   }
   void backward() {
-    laststate = state;
-    state = -1;
-    if (num == 0) {
-      lastnum = num;
-      num = num + 1;
-    }
+  digitalWrite(pin1,LOW);
+  digitalWrite(pin2,HIGH);
+  analogWrite(pin3,200);
   }
   void forward() {
-    laststate = state;
-    state = 1;
-    if (num == 0) {
-      lastnum = num;
-      num = num + 1;
-    }
+  digitalWrite(pin1,HIGH);
+  digitalWrite(pin2,LOW);
+  analogWrite(pin3,200);
   }
   void speed(int number) {
     num = 200;
-  }
-  void stop() {
-    laststate = state;
-    state = 0;
-    lastnum = num;
-    num = 0;
   }
   void start() {
     laststate = state;
@@ -67,11 +56,6 @@ public:
   }
   void act() {
     switch (state) {
-      case -1:
-        digitalWrite(pin1, LOW);
-        digitalWrite(pin2, HIGH);
-        analogWrite(pin3, 200);
-        break;
       case 0:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
@@ -97,63 +81,68 @@ public:
     return laststate;
   }
 };
-Moto* l = new Moto(MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2, MOTOR_ENB);
-Moto* r = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
-void go() {
-  digitalWrite(MOTOR_LEFT_PIN_1,HIGH);
-  digitalWrite(MOTOR_LEFT_PIN_2,LOW);
-  analogWrite(MOTOR_ENB,200);
-  digitalWrite(MOTOR_RIGTH_PIN_1,HIGH);
-  digitalWrite(MOTOR_RIGTH_PIN_2,LOW);
-  analogWrite(MOTOR_ENA,200);
-}
+class Rover {
+  int lastState;
+  Moto* lMotor;
+  Moto* rMotor;
+  int num = 0;
+  int state = 0;
+public:
+  Rover(Moto* l, Moto* r)
+    : lMotor(l), rMotor(r) {
+    lMotor = l;
+    rMotor = r;
+  }
+  static Rover* getInstance() {
+    Moto* l = new Moto(MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2, MOTOR_ENB);
+    Moto* r = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
+    return new Rover(l, r);
+  }
 
-void left() {
-  digitalWrite(MOTOR_LEFT_PIN_1,HIGH);
-  digitalWrite(MOTOR_LEFT_PIN_2,LOW);
-  analogWrite(MOTOR_ENB,200);
-  digitalWrite(MOTOR_RIGTH_PIN_1,LOW);
-  digitalWrite(MOTOR_RIGTH_PIN_2,LOW);
-  analogWrite(MOTOR_ENA,0);
-}
-
-void right() {
-  digitalWrite(MOTOR_LEFT_PIN_1,LOW);
-  digitalWrite(MOTOR_LEFT_PIN_2,LOW);
-  analogWrite(MOTOR_ENB,0);
-  digitalWrite(MOTOR_RIGTH_PIN_1,HIGH);
-  digitalWrite(MOTOR_RIGTH_PIN_2,LOW);
-  analogWrite(MOTOR_ENA,200);
-}
-
-void stop() {
-  digitalWrite(MOTOR_LEFT_PIN_1,LOW);
-  digitalWrite(MOTOR_LEFT_PIN_2,LOW);
-  analogWrite(MOTOR_ENB,0);
-  digitalWrite(MOTOR_RIGTH_PIN_1,LOW);
-  digitalWrite(MOTOR_RIGTH_PIN_2,LOW);
-  analogWrite(MOTOR_ENA,0);
-}
-
+  void left() {
+    lMotor->stop();
+    rMotor->forward();
+  }
+  void right() {
+    lMotor->forward();
+    rMotor->stop();
+  }
+  void forward() {
+    lMotor->forward();
+    rMotor->forward();
+  }
+  void stop() {
+    lMotor->stop();
+    rMotor->stop();
+  }
+  void printState() {
+    Serial.print("Left: ");
+    pState(lMotor);
+    Serial.print("Right: ");
+    pState(rMotor);
+  }
+  void pState(Moto* moto) {
+    Serial.print(moto->getState());
+    Serial.print(":");
+    Serial.println(moto->getNum());
+  }
+};
+Rover* rover = Rover::getInstance();
 void setup(){
-  pinMode(MOTOR_LEFT_PIN_1, OUTPUT);
-  pinMode(MOTOR_LEFT_PIN_2, OUTPUT);
-  pinMode(MOTOR_RIGTH_PIN_1, OUTPUT);
-  pinMode(MOTOR_RIGTH_PIN_2, OUTPUT);
   pinMode(A2, INPUT);
   pinMode(A1, INPUT);
 }
 
 void loop(){
   if (digitalRead(A2) == 0 && digitalRead(A1) == 0) {
-    stop();
+    rover->stop();
 
   } else if (digitalRead(A2) == 1 && digitalRead(A1) == 0) {
-    right();
+    rover->right();
   } else if (digitalRead(A2) == 0 && digitalRead(A1) == 1) {
-    left();
+    rover->left();
   } else if (digitalRead(A2) == 1 && digitalRead(A1) == 1) {
-    go();
+    rover->forward();
   }
 
 }
