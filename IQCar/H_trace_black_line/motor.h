@@ -22,7 +22,7 @@ enum Status {
 
 int speed(int speedValue) {
   if (speedValue == 0) return 0;
-  return 100 + 75 * speedValue;
+  return 100 + 75 * (speedValue-1);
 };
 
 class Moto {
@@ -44,14 +44,17 @@ public:
   void powerDown() {
     if (num > 0) {
       lastnum = num;
-      num--;
     }
   }
   void powerUp() {
     if (num < 3) {
       lastnum = num;
-      num++;
+      num+=1;
     }
+  }
+  void powerOff(){
+    lastnum = num;
+    num = 0;
   }
   void backward() {
     laststate = state;
@@ -120,39 +123,41 @@ public:
     return new Rover(l, r);
   }
   void powerUp() {
+    syncSpeed();
     lMotor->powerUp();
     rMotor->powerUp();
   }
   void powerDown() {
+    syncSpeed();
     lMotor->powerDown();
     rMotor->powerDown();
   }
-  void goStright() {
+  void syncSpeed() {
     int lnum = lMotor->getNum();
     int rnum = rMotor->getNum();
-    int speed = lnum > rnum ? lnum : rnum;
-    if (speed == 0) speed++;
-    lMotor->setSpeed(speed);
-    rMotor->setSpeed(speed);
+    if(lnum!=rnum){
+      int speed = lnum > rnum ? lnum : rnum;
+      lMotor->setSpeed(speed);
+      rMotor->setSpeed(speed);
+    }
   }
   void left() {
-    lMotor->powerDown();
+    lMotor->powerOff();
     rMotor->powerUp();
+  }
+  void right() {
+    lMotor->powerUp();
+    rMotor->powerOff();
   }
   void forward() {
     lMotor->forward();
     rMotor->forward();
-    goStright();
   }
   void backward() {
     lMotor->backward();
     rMotor->backward();
-    goStright();
   }
-  void right() {
-    lMotor->powerUp();
-    rMotor->powerDown();
-  }
+
   void act() {
     lMotor->act();
     rMotor->act();
@@ -160,6 +165,17 @@ public:
   void stop() {
     lMotor->stop();
     rMotor->stop();
+  }
+  void printState(){
+    Serial.print("Left: ");
+    pState(lMotor);
+    Serial.print("Right: ");
+    pState(rMotor);    
+  }
+  void pState(Moto* moto){
+    Serial.print(moto->getState());
+    Serial.print(":");
+    Serial.println(moto->getNum());
   }
 };
 

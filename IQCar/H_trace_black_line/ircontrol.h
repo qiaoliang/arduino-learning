@@ -58,9 +58,10 @@ void IrReciver_Routine(){
        rover->powerDown();
     }
     else{
-      Serial.print(">>>>  ");
-      Serial.println(ir_item, HEX);                                  //用16进制显示
+      //Serial.print(">>>>  ");
+      //Serial.println(ir_item, HEX);                                  //用16进制显示
     }
+    rover->printState();
     IrReceiver.resume();                                           // Enable receiving of the next value
   }
 }
