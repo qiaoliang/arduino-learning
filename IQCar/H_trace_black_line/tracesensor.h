@@ -18,7 +18,7 @@ void trace_check(){
   trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN3);
   trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN2);
   trace_signal = (trace_signal<<1)|digitalRead(TRACE_PIN1);
-  if(lastTrace!= trace_signal) printBinary(trace_signal);
+  if(lastTrace== trace_signal) return;
   if (trace_signal == 0b0000) {
     rover->stop();
   }

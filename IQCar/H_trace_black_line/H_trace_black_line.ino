@@ -14,9 +14,8 @@
 #define OBS_PIN2  0       // 左红外避障的引脚
 
 ISR(PCINT1_vect){    // 对A4 引脚 中断的处理函数
-    IrReciver_exec();
+    IrReciver_Routine();
 }
-
 
 Rover* rover = Rover::getInstance();
 
@@ -24,7 +23,7 @@ void setup() {
   Serial.begin(9600);
   Timer1_init();
   IrReceiver_ISR_init();
-  rover->lauch();
+  rover->forward();
 }
 
 void loop() {

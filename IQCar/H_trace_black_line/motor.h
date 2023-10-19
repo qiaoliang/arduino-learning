@@ -1,7 +1,7 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
-#include<Arduino.h>
+#include <Arduino.h>
 
 // 车上马达 A 的引脚连接
 #define MOTOR_RIGTH_PIN_1 4
@@ -20,108 +20,144 @@ enum Status {
   BACKWARD
 };
 
-int speed(int speedValue){
-  if(speedValue ==0) return 0;
-  return 100+75*speedValue;
+int speed(int speedValue) {
+  if (speedValue == 0) return 0;
+  return 100 + 75 * speedValue;
 };
 
-class Moto{
+class Moto {
   int pin1;
   int pin2;
   int pin3;
-  int lastnum,num =0;  // 0,1(100),2(175),3(250)
-  int laststate,state=0;  //0 stop, -1 backward, 1, forward
-  public:
-    Moto(int p1,int p2,int p3){
-      pin1 = p1;
-      pin2 = p2;
-      pin3 = p3; 
+  int lastnum, num = 0;      // 0,1(100),2(175),3(250)
+  int laststate, state = 0;  //0 stop, -1 backward, 1, forward
+public:
+  Moto(int p1, int p2, int p3) {
+    pin1 = p1;
+    pin2 = p2;
+    pin3 = p3;
     // Set the motor control pins to outputs
-      pinMode(p1, OUTPUT);
-      pinMode(p2, OUTPUT);
-      pinMode(p3, OUTPUT);
-    }
-    void powerDown(){
-      if(num > 0 )  num--;
-      act();
-    }
-    void powerUp(){
-      if(num < 3 ) num++;
-      act();
-    }
-    void backward(){
+    pinMode(p1, OUTPUT);
+    pinMode(p2, OUTPUT);
+    pinMode(p3, OUTPUT);
+  }
+  void powerDown() {
+    if (num > 0) {
       lastnum = num;
-      num = 2;
-      laststate = state;
-      state = -1;
-      act();
+      num--;
     }
-    void forward(){
+  }
+  void powerUp() {
+    if (num < 3) {
       lastnum = num;
-      num = 2;
-      laststate = state;
-      state = 1;
-      act();
+      num++;
     }
-    void stop(){
-      num = 0;
-      state = 0;
-      act();
-    }
-    void act(){
-      //if(lastnum!=num) Serial.println(num);
-      //if(laststate!=state) Serial.println(state);     
-      switch(state){
+  }
+  void backward() {
+    laststate = state;
+    state = -1;
+  }
+  void forward() {
+    laststate = state;
+    state = 1;
+  }
+  void setSpeed(int number) {
+    lastnum = num;
+    num = number;
+  }
+  void stop() {
+    laststate = state;
+    state = 0;
+    lastnum = num;
+    num = 0;
+  }
+  void act() {
+    switch (state) {
       case -1:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, HIGH);
-        analogWrite(pin3, speed(num));
         break;
-      case 0:  
+      case 0:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
-        analogWrite(pin3, speed(num));
         break;
       case 1:
         digitalWrite(pin1, HIGH);
         digitalWrite(pin2, LOW);
-        analogWrite(pin3, speed(num));
         break;
-      }
     }
+    analogWrite(pin3, speed(num));
+  }
+  int getNum() {
+    return num;
+  }
+  int getLastNum() {
+    return lastnum;
+  }
+  int getState() {
+    return state;
+  }
+  int getLastState() {
+    return laststate;
+  }
 };
 
-class Rover{
+class Rover {
   int lastState;
-  Moto *lMotor;
-  Moto *rMotor;
+  Moto* lMotor;
+  Moto* rMotor;
+  int num = 0;
+  int state = 0;
 public:
-  Rover(Moto* l, Moto* r) : lMotor(l), rMotor(r) {
+  Rover(Moto* l, Moto* r)
+    : lMotor(l), rMotor(r) {
     lMotor = l;
     rMotor = r;
   }
   static Rover* getInstance() {
-    Moto* l = new Moto(MOTOR_LEFT_PIN_1,MOTOR_LEFT_PIN_2,MOTOR_ENB);
-    Moto* r = new Moto(MOTOR_RIGTH_PIN_1,MOTOR_RIGTH_PIN_2,MOTOR_ENA);
-    return new Rover(l,r);
+    Moto* l = new Moto(MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2, MOTOR_ENB);
+    Moto* r = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
+    return new Rover(l, r);
   }
-  void lauch(){
-    lMotor->forward();
-    rMotor->forward();
+  void powerUp() {
+    lMotor->powerUp();
+    rMotor->powerUp();
   }
-  void left(){
+  void powerDown() {
+    lMotor->powerDown();
+    rMotor->powerDown();
+  }
+  void goStright() {
+    int lnum = lMotor->getNum();
+    int rnum = rMotor->getNum();
+    int speed = lnum > rnum ? lnum : rnum;
+    if (speed == 0) speed++;
+    lMotor->setSpeed(speed);
+    rMotor->setSpeed(speed);
+  }
+  void left() {
     lMotor->powerDown();
     rMotor->powerUp();
   }
-  void right(){
+  void forward() {
+    lMotor->forward();
+    rMotor->forward();
+    goStright();
+  }
+  void backward() {
+    lMotor->backward();
+    rMotor->backward();
+    goStright();
+  }
+  void right() {
     lMotor->powerUp();
     rMotor->powerDown();
   }
-  void act(){
+  void act() {
     lMotor->act();
     rMotor->act();
   }
-  void stop(){
+  void stop() {
     lMotor->stop();
     rMotor->stop();
   }

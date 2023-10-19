@@ -7,8 +7,8 @@ void timerIRS()
 
   (++count)%=100;
 
-  if(count ==0)
-    trace_check();
+//  if(count ==0)
+    //trace_check();
 }
 
 void Timer1_init(){
