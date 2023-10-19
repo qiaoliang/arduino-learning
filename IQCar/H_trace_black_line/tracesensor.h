@@ -11,7 +11,28 @@ void printBinary(unsigned char num) {
 }
 extern Rover* rover;          // 在主文件中已经声明并初始化了
 
+void traceSensor_Init(){
+pinMode(TRACE_PIN1, INPUT);
+pinMode(TRACE_PIN2, INPUT);
+pinMode(TRACE_PIN3, INPUT);
+pinMode(TRACE_PIN4, INPUT);
+}
+
 uint8_t trace_signal,lastTrace=0;
+
+void trace_check(){
+    if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 0) {
+    rover->stop();
+
+  } else if (digitalRead(TRACE_PIN3) == 1 && digitalRead(TRACE_PIN2) == 0) {
+    rover->right();
+  } else if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 1) {
+    rover->left();
+  } else if (digitalRead(TRACE_PIN3) == 1 && digitalRead(TRACE_PIN2) == 1) {
+    rover->forward();
+  }
+}
+/**
 void trace_check(){
   lastTrace = trace_signal;
   trace_signal = digitalRead(TRACE_PIN4);
@@ -29,6 +50,7 @@ void trace_check(){
     rover->left();
   }
   if (trace_signal == 0b0110) {
-    rover->act();
+    rover->forward();
   }
 }
+*/

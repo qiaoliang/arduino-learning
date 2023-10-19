@@ -41,7 +41,7 @@ void IrReciver_Routine(){
     }
     if(ir_item == KEY_8) {
       Serial.println(KEY_8, HEX);
-      rover->backward();
+      //rover->backward();
     }
     if(ir_item == KEY_4) {
       Serial.println(KEY_4, HEX);                                  //用16进制显示
@@ -52,10 +52,10 @@ void IrReciver_Routine(){
       rover->right();
     }
     if(ir_item == KEY_ACC){
-       rover->powerUp();
+       //rover->powerUp();
     }
     if(ir_item == KEY_DAC){
-       rover->powerDown();
+       //rover->powerDown();
     }
     else{
       //Serial.print(">>>>  ");

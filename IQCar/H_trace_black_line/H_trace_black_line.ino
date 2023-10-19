@@ -21,14 +21,12 @@ Rover* rover = Rover::getInstance();
 
 void setup() {
   Serial.begin(9600);
-  Timer1_init();
-  IrReceiver_ISR_init();
-  rover->forward();
-  rover->forward();
+  traceSensor_Init();
+//  Timer1_init();
+//  IrReceiver_ISR_init();
   rover->forward();
 }
 
 void loop() {
-  rover->act();
+  trace_check();
 }
-

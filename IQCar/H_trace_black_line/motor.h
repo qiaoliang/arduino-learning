@@ -11,20 +11,9 @@
 #define MOTOR_LEFT_PIN_1 4
 #define MOTOR_LEFT_PIN_2 5
 #define MOTOR_ENB 10
+
 #define SPEEDUNIT 50
 #define MAX_SPEED 3
-
-enum Status {
-  FORWARD,
-  STOP,
-  BACKWARD
-};
-
-int speed(int speedValue) {
-  if (speedValue == 0) return 0;
-  return 100 + 75 * (speedValue - 1);
-};
-
 class Moto {
   int pin1;
   int pin2;
@@ -46,40 +35,25 @@ public:
     }
   }
   void powerUp() {
-    if (num < MAX_SPEED) {
-      lastnum = num;
       num += 1;
-    }
-  }
-  void powerOff() {
-    lastnum = num;
-    num = 0;
-  }
-  void backward() {
-    laststate = state;
-    state = -1;
-    if (num == 0) {
-      lastnum = num;
-      num = num + 1;
-    }
-  }
-  void forward() {
-    laststate = state;
-    state = 1;
-    if (num == 0) {
-      lastnum = num;
-      num = num + 1;
-    }
-  }
-  void setSpeed(int number) {
-    lastnum = num;
-    num = number;
   }
   void stop() {
-    laststate = state;
-    state = 0;
-    lastnum = num;
-    num = 0;
+  digitalWrite(pin1,LOW);
+  digitalWrite(pin2,LOW);
+  analogWrite(pin3,0);
+  }
+  void backward() {
+  digitalWrite(pin1,LOW);
+  digitalWrite(pin2,HIGH);
+  analogWrite(pin3,200);
+  }
+  void forward() {
+  digitalWrite(pin1,HIGH);
+  digitalWrite(pin2,LOW);
+  analogWrite(pin3,200);
+  }
+  void speed(int number) {
+    num = 200;
   }
   void start() {
     laststate = state;
@@ -89,20 +63,15 @@ public:
   }
   void act() {
     switch (state) {
-      case -1:
-        digitalWrite(pin1, LOW);
-        digitalWrite(pin2, HIGH);
-        analogWrite(pin3, speed(this->num));
-        break;
       case 0:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
-        analogWrite(pin3, speed(this->num));
+        analogWrite(pin3, 0);
         break;
       case 1:
         digitalWrite(pin1, HIGH);
         digitalWrite(pin2, LOW);
-        analogWrite(pin3, speed(this->num));
+        analogWrite(pin3, 200);
         break;
     }
   }
@@ -119,7 +88,6 @@ public:
     return laststate;
   }
 };
-
 class Rover {
   int lastState;
   Moto* lMotor;
@@ -137,35 +105,18 @@ public:
     Moto* r = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
     return new Rover(l, r);
   }
-  void powerUp() {
-    lMotor->powerUp();
-    rMotor->powerUp();
-  }
-  void powerDown() {
-    lMotor->powerDown();
-    rMotor->powerDown();
-  }
 
   void left() {
     lMotor->stop();
-    rMotor->start();
+    rMotor->forward();
   }
   void right() {
-    lMotor->start();
+    lMotor->forward();
     rMotor->stop();
   }
   void forward() {
     lMotor->forward();
     rMotor->forward();
-  }
-  void backward() {
-    lMotor->backward();
-    rMotor->backward();
-  }
-
-  void act() {
-    lMotor->act();
-    rMotor->act();
   }
   void stop() {
     lMotor->stop();
@@ -183,6 +134,5 @@ public:
     Serial.println(moto->getNum());
   }
 };
-
 
 #endif
