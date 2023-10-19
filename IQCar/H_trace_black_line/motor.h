@@ -4,13 +4,13 @@
 #include <Arduino.h>
 
 // 车上马达 A 的引脚连接
-#define MOTOR_RIGTH_PIN_1 7
-#define MOTOR_RIGTH_PIN_2 8
-#define MOTOR_ENA 9
+#define MOTOR_RIGTH_PIN_1 6
+#define MOTOR_RIGTH_PIN_2 7
+#define MOTOR_ENA 11
 
 #define MOTOR_LEFT_PIN_1 4
 #define MOTOR_LEFT_PIN_2 5
-#define MOTOR_ENB 6
+#define MOTOR_ENB 10
 #define SPEEDUNIT 50
 #define MAX_SPEED 3
 
@@ -22,7 +22,7 @@ enum Status {
 
 int speed(int speedValue) {
   if (speedValue == 0) return 0;
-  return 100 + 75 * (speedValue-1);
+  return 100 + 75 * (speedValue - 1);
 };
 
 class Moto {
@@ -39,7 +39,6 @@ public:
     // Set the motor control pins to outputs
     pinMode(p1, OUTPUT);
     pinMode(p2, OUTPUT);
-    pinMode(p3, OUTPUT);
   }
   void powerDown() {
     if (num > 0) {
@@ -49,27 +48,27 @@ public:
   void powerUp() {
     if (num < MAX_SPEED) {
       lastnum = num;
-      num+=1;
+      num += 1;
     }
   }
-  void powerOff(){
+  void powerOff() {
     lastnum = num;
     num = 0;
   }
   void backward() {
     laststate = state;
     state = -1;
-    if(num==0){
-      lastnum=num;
-      num=num+1;
+    if (num == 0) {
+      lastnum = num;
+      num = num + 1;
     }
   }
   void forward() {
     laststate = state;
     state = 1;
-    if(num==0){
-      lastnum=num;
-      num=num+1;
+    if (num == 0) {
+      lastnum = num;
+      num = num + 1;
     }
   }
   void setSpeed(int number) {
@@ -93,17 +92,19 @@ public:
       case -1:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, HIGH);
+        analogWrite(pin3, speed(this->num));
         break;
       case 0:
         digitalWrite(pin1, LOW);
         digitalWrite(pin2, LOW);
+        analogWrite(pin3, speed(this->num));
         break;
       case 1:
         digitalWrite(pin1, HIGH);
         digitalWrite(pin2, LOW);
+        analogWrite(pin3, speed(this->num));
         break;
     }
-    analogWrite(pin3, speed(this->num));
   }
   int getNum() {
     return num;
@@ -170,13 +171,13 @@ public:
     lMotor->stop();
     rMotor->stop();
   }
-  void printState(){
+  void printState() {
     Serial.print("Left: ");
     pState(lMotor);
     Serial.print("Right: ");
-    pState(rMotor);    
+    pState(rMotor);
   }
-  void pState(Moto* moto){
+  void pState(Moto* moto) {
     Serial.print(moto->getState());
     Serial.print(":");
     Serial.println(moto->getNum());

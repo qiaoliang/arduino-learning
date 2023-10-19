@@ -24,6 +24,8 @@ void setup() {
   Timer1_init();
   IrReceiver_ISR_init();
   rover->forward();
+  rover->forward();
+  rover->forward();
 }
 
 void loop() {
