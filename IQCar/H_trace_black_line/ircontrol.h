@@ -19,8 +19,8 @@ extern Rover* rover;          // 已经在主文件中声明并初始化了
  */
 void IrReceiver_ISR_init(){
   IrReceiver.begin(IR_RECEIVE_PIN); // 绑定遥控器接收模块
-  PCICR |=0x02;  // Enable PCIE Port C，端口等参见  https://blog.csdn.net/acktomas/article/details/128230329
-  PCMSK1 |=0x10;  // 引脚 A4
+  PCICR  |=0B00000010;  // Enable PCIE Port C，端口等参见  https://blog.csdn.net/acktomas/article/details/128230329
+  PCMSK1 |=0B00010000;  // 引脚 A4
 }
 
 /**
