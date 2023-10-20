@@ -1,7 +1,11 @@
+
+
 #define TRACE_PIN1  A0  // 寻迹引脚右1
 #define TRACE_PIN2  A1  // 寻迹引脚右2
 #define TRACE_PIN3  A2  // 寻迹引脚右3
 #define TRACE_PIN4  A3  // 寻迹引脚右4
+
+
 
 void printBinary(unsigned char num) {
   for (int i = 7; i >= 0; i--) {
@@ -21,12 +25,12 @@ pinMode(TRACE_PIN4, INPUT);
 uint8_t trace_signal,lastTrace=0;
 
 void trace_check(){
-    if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 0) {
+  if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 0) {
     rover->stop();
   } else if (digitalRead(TRACE_PIN3) == 1 && digitalRead(TRACE_PIN2) == 0) {
-    rover->right();
-  } else if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 1) {
     rover->left();
+  } else if (digitalRead(TRACE_PIN3) == 0 && digitalRead(TRACE_PIN2) == 1) {
+    rover->right();
   } else if (digitalRead(TRACE_PIN3) == 1 && digitalRead(TRACE_PIN2) == 1) {
     rover->forward();
   }

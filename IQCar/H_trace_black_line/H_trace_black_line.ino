@@ -1,9 +1,10 @@
 // 本程序使用 L298N驱动板上的 ENA 和 ENB 两个引脚，通过 PWM 信号来控制小车的行进速度。
-// 在Arduino上使用servo库时，不能在引脚9,10上使用PWM。
-//Arduino有3个定时器和6个PWM输出引脚。定时器和PWM输出之间的关系是：
-//引脚5和6：由timer0控制
-//引脚9和10：由timer1控制
-//引脚11和3：由timer2控制
+
+/**
+ * 当前版本 V1.0
+ * 1. 只使用车子中间的两个红外传感器，且无法遥控。
+ * 2. 没有使用遥控的外部中断和定时器中断。
+ */
 #include "timer1.h"
 #include "motor.h"
 #include "ircontrol.h"

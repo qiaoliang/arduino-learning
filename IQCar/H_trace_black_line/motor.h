@@ -16,7 +16,7 @@
 #define MAX_SPEED 3
 
 static uint8_t POSITIONS[3][2] = { { LOW, LOW }, { HIGH, LOW }, { LOW, HIGH } };
-static uint8_t SPEEDS[4] = { 0, 100, 175, 250 };
+static uint8_t SPEEDS[4] = { 0, 75, 100, 125 };
 class Moto {
   unsigned char name; 
   int pin1;
