@@ -16,7 +16,7 @@
 #define MAX_SPEED 3
 
 static uint8_t POSITIONS[3][2] = { { LOW, LOW }, { HIGH, LOW }, { LOW, HIGH } };
-static uint8_t SPEEDS[4] = { 0, 75, 100, 125 };
+static uint8_t SPEEDS[4] = { 0, 70, 105, 140 };
 class Moto {
   unsigned char name; 
   int pin1;
@@ -85,8 +85,8 @@ public:
     rMotor = r;
   }
   static Rover* getInstance() {
-    Moto* l = new Moto(MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2, MOTOR_ENB);
-    Moto* r = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
+    Moto* r = new Moto(MOTOR_LEFT_PIN_1, MOTOR_LEFT_PIN_2, MOTOR_ENB);
+    Moto* l = new Moto(MOTOR_RIGTH_PIN_1, MOTOR_RIGTH_PIN_2, MOTOR_ENA);
     return new Rover(l, r);
   }
 
