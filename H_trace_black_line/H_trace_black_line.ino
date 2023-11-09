@@ -1,28 +1,61 @@
-// 本程序使用 L298N驱动板上的 ENA 和 ENB 两个引脚，通过 PWM 信号来控制小车的行进速度。
-
-/**
- * 当前版本 V2.0
- * 1. 只使用车子前端的四个红外传感器，还是无法遥控小车。
- * 2. 需要仔细调节四个红外传感器，让两个中间的挨近些，两边传感器与中间的传感器间隔大一些。
- * 3. 没有使用遥控的外部中断和定时器中断。
- */
 #include "motor.h"
 #include "tracesensor.h"
+#include "irControl.h"
+#include "ultrasound.h"
 
 Rover* rover = Rover::getInstance();
+Moto* moto = Moto::getInst('L');
 int count =0;
 
 void setup() {
   Serial.begin(9600);
-  traceSensor_Init();
+  TraceSensor_Init();
+  IR_Init();
+  UltraSound_Init();
+  moto->Moto_DebugInfo();
 }
 
-unsigned char oldtrace;
+float lastvalue=0.0;
+
 void loop() {
-  unsigned char trace = trace_check();
-  count++;
-  if(trace !=oldtrace){
-    Serial.println(trace);
-    oldtrace = trace;
+  US_DebugInfo();
+  IR_DebugInfo();
+  Trace_DebugInfo();
+  moto->Moto_DebugInfo();
+  long signal = IR_detect();
+  switch(signal){
+  case 2:
+    break;
+  case 4:
+    break;
+  case 6:
+    break;
+  case 5:
+    break;
+  case 8:
+    break;
+  default:
+    break;
+  }
+
+  signal = trace_check();
+  switch(signal){
+    case 0b0000:
+    rover->stop();
+    break;
+    case 0b0110:
+    rover->forward();
+    break;
+    case 0b1100:
+    case 0b1110:
+    rover->right();
+    break;
+    case 0b0011:
+    case 0b0111:
+    rover->left();
+    break;
+    case 0b1111:
+    rover->stop();
+    break;
   }
 }

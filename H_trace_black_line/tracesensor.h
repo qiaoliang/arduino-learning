@@ -5,7 +5,7 @@
 #define TRACE_PIN3 A3  // 寻迹引脚右3
 #define TRACE_PIN4 A4  // 寻迹引脚右4
 
-void traceSensor_Init() {
+void TraceSensor_Init() {
   pinMode(TRACE_PIN1, INPUT);
   pinMode(TRACE_PIN2, INPUT);
   pinMode(TRACE_PIN3, INPUT);
@@ -24,4 +24,14 @@ unsigned char trace_check() {
     ret |= t2 <<1;
     ret |= t1;
     return ret;
+}
+
+unsigned char last_trace;
+void Trace_DebugInfo(){
+  unsigned char trace = trace_check();
+  if(last_trace!=trace){
+    last_trace = trace;
+    Serial.print("寻迹数据: ");
+    Serial.println(last_trace);
+  }
 }

@@ -26,7 +26,8 @@ class Moto {
   int speed;
 
 public:
-  Moto(int p1, int p2, int pwm) {
+  Moto(unsigned char n,int p1, int p2, int pwm) {
+    name = n;
     pin1 = p1;
     pin2 = p2;
     pwm_pin = pwm;
@@ -34,35 +35,55 @@ public:
     pinMode(pin1, OUTPUT);
     pinMode(pin2, OUTPUT);
   }
+  static Moto* getInst(unsigned char name){
+    return new Moto('L',L_PIN_1, L_PIN_2, L_PWM);    
+  }
   void setSpeed(int v){
+    lastspeed = speed;
     speed= v;
   }
 
   void stop() {
+    lastspeed =speed;
     speed =0;
   }
   void start(){
+    lastspeed =speed;
     speed = MIN_SPEED;
   }
   void backward() {
     if(speed >0){
+      lastspeed =speed;
       speed = -speed;
     }
     if(speed=0){
+      lastspeed =speed;
       speed = -MIN_SPEED;
     }
     act();
   }
   void forward() {
     if(speed <0){
+      lastspeed =speed;
       speed = -speed;
     }
     if(speed=0){
+      lastspeed =speed;
       speed = MIN_SPEED;
     }
     act();
   }
+  void Moto_DebugInfo(){
+    if(lastspeed==speed)
+      return;
+    lastspeed = speed;
+    Serial.print("马达:");
+    Serial.print(String(name));
+    Serial.print("--");
+    Serial.println(speed);
+  }
 private:
+  int lastspeed=-65535;
   void act() {
     if(speed>0 )
     {
@@ -91,8 +112,8 @@ public:
     rMotor = r;
   }
   static Rover* getInstance() {
-    Moto* r = new Moto(L_PIN_1, L_PIN_2, L_PWM);
-    Moto* l = new Moto(R_PIN_1, R_PIN_2, R_PWM);
+    Moto* r = new Moto("L",L_PIN_1, L_PIN_2, L_PWM);
+    Moto* l = new Moto("R",R_PIN_1, R_PIN_2, R_PWM);
     return new Rover(l, r);
   }
 

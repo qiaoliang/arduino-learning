@@ -3,7 +3,7 @@
 
 float last_dist =0.0;
 
-float checkdistance_By_ultrasound() {
+float UltSound_detect() {
 
   digitalWrite(ULTRASOUND_OUT_PIN, LOW);
   delayMicroseconds(2);  // 在将Trigger 端置为高电平之前,需要确保Echo端已经处于低电平稳定状态，所以等要待2us.
@@ -14,20 +14,21 @@ float checkdistance_By_ultrasound() {
   delay(10);             // 给传感器一些恢复时间。传感部分的传感器和电路需要一些时间来恢复到准备状态。
   return distance;
 }
-void ultraSound_Init() {
 
+void UltraSound_Init() {
   pinMode(ULTRASOUND_OUT_PIN, OUTPUT);
   pinMode(ULTRASOUND_IN_PIN, INPUT);
 }
-void logDistance(float curr_dist){
+
+void US_DebugInfo(){
+  float curr_dist = UltSound_detect();
   if(curr_dist>1000) // 这个超声波器件最远测距是 10米以内。超过 10 米就不打印输出了
   {
       return;
   }
-  if(abs(curr_dist-last_dist) >=1){
-    String curr_Value = String(curr_dist, 2); // 保留两位小数。
-    String last_Value = String(last_dist, 2);
-    Serial.println(last_Value +":"+curr_Value); // 为了减少输出，只有当两次距离差大小1时，才通过 USB 串口发回测出的距离
+  if(abs(curr_dist-last_dist) >=10){  // 为了减少输出，只有当两次距离差大小1时，才通过 USB 串口发回测出的距离
+    Serial.print("超声波:"); 
+    Serial.println(curr_dist);
     last_dist = curr_dist;
   }
 }
