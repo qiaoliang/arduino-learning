@@ -104,13 +104,12 @@ private:
   }
 };
 class Rover {
-  int lastState;
-  Moto* lMotor;
-  Moto* rMotor;
+  int lastState,state = 0;
+  Moto* lMotor=NULL;
+  Moto* rMotor=NULL;
   String command="None";
   String lastCommand="None";
   int num = 0;
-  int state = 0;
 public:
   Rover(Moto* l, Moto* r)
     : lMotor(l), rMotor(r) {
@@ -123,11 +122,13 @@ public:
     return new Rover(l, r);
   }
   void start(){
+    if(!health_check()) return;
     command = "start";
     lMotor->start();
     rMotor->start();
   }
   void left() {
+    if(!health_check()) return;
     command = "left";
     lMotor->stop();
     rMotor->forward();
@@ -138,22 +139,33 @@ public:
     rMotor->stop();
   }
   void forward() {
+    if(!health_check()) return;
     command = "forward";
     lMotor->forward();
     rMotor->forward();
   }
   void stop() {
+    if(!health_check()) return;
     command = "stop";
     lMotor->stop();
     rMotor->stop();
   }
   void Rover_DebugInfo(){
+    if(!health_check()) return;
     if(command!=lastCommand){
       lastCommand = command;
       Serial.println("command = "+ command);
     }
     lMotor->Moto_DebugInfo();
     rMotor->Moto_DebugInfo();
+  }
+private:
+  bool health_check(){
+    bool ret = lMotor!=NULL && rMotor!=NULL;
+    if(!ret){
+      Serial.println("马达没有初始化。");
+    }
+    return ret;
   }
 };
 
