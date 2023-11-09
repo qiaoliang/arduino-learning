@@ -16,6 +16,8 @@ void MyServo_Init() {
 
 //以当前角度为基点，偏转一定的角度。正数为顺时针，负数为逆时针。
 void MyServo_rotate(int offset) {
+  if(!myservo.attached())
+    return;
   int targetAngle = offset + preAngle;
   if( targetAngle>=180 ) {
     targetAngle =180;

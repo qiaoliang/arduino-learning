@@ -72,7 +72,7 @@ void setup() {
   TraceSensor_Init();
   UltraSound_Init();
   OBS_Init();
-  MyServo_Init();
+  //MyServo_Init();
 
 
 

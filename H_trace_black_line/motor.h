@@ -12,14 +12,12 @@
 #define R_PIN_2 5
 #define R_PWM 10
 
-#define MAX_SPEED 10000
-#define MIN_SPEED 10000
-#define PWD_UNIT 255/MAX_SPEED
-
-#define MAX_SPEED 3
+#define MOTO_MAX_SPEED 10000
+#define MOTO_MIN_SPEED 10000
+#define PWD_UNIT 255 / MOTO_MAX_SPEED
 
 class Moto {
-  unsigned char name; 
+  unsigned char name;
   int pin1;
   int pin2;
   int pwm_pin;
@@ -38,8 +36,10 @@ public:
   static Moto* getInst(unsigned char name){
     if(name =='L')
       return new Moto('L',L_PIN_1, L_PIN_2, L_PWM);
-    if(name='R')
+    if(name=='R')
       return new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
+    Serial.println("马达名字不对。");
+    return NULL;
   }
   void stop() {
     lastspeed =speed;
@@ -47,12 +47,12 @@ public:
   }
   void start(){
     lastspeed =speed;
-    speed = MIN_SPEED;
+    speed = MOTO_MIN_SPEED;
     act();
   }
   void forward() {
     lastspeed = speed;
-    speed = MIN_SPEED;
+    speed = MOTO_MIN_SPEED;
     act();
   }
   void Moto_DebugInfo(){
@@ -65,7 +65,7 @@ public:
     Serial.println(speed);
   }
 private:
-  int lastspeed=-65535;
+  int lastspeed=0;
   void act() {
     if(speed>0 )
     {
@@ -73,7 +73,7 @@ private:
       digitalWrite(pin2, 0);
     }else if(speed <0){
       digitalWrite(pin1, 0);
-      digitalWrite(pin2, 1); 
+      digitalWrite(pin2, 1);
     }else{
       digitalWrite(pin1, 0);
       digitalWrite(pin2, 0);
