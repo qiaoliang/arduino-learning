@@ -101,6 +101,7 @@ private:
       digitalWrite(pin2, 0);
     }
     analogWrite(pwm_pin, speed*PWD_UNIT);
+    delay(200);
   }
 };
 class Rover {

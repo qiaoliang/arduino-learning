@@ -1,8 +1,10 @@
 #include "motor.h"
+#include "myservo.h"
 #include "tracesensor.h"
 #include "irControl.h"
 #include "ultrasound.h"
 #include "InfraRED.h"
+
 
 Rover* rover = NULL ;
 int count =0;
@@ -67,19 +69,29 @@ void IRControl_Enable(){
 
 void setup() {
   Serial.begin(9600);
-  TraceSensor_Init();
-  //IR_Init();
-  UltraSound_Init();
-  OBS_Init();
   rover = Rover::getInstance();
   rover->start();
+  TraceSensor_Init();
+  UltraSound_Init();
+  OBS_Init();
+  //MyServo_Init();
+
+
+
+  //IR_Init();
 }
 
-
+int degree =10;
 void loop() {
-  US_DebugInfo();
   Trace_DebugInfo();
+  US_DebugInfo();
+  degree = -degree;
   OBS_DebugInfo();
+  //MyServo_rotate(degree);
+
+
+
+
   //rover->Rover_DebugInfo();
   //Trace_Enable();
   //IRControl_Enable();
