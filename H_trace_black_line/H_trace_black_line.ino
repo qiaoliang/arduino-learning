@@ -66,7 +66,7 @@ void IRControl_Enable(){
 
 void setup() {
   Serial.begin(9600);
-  //TraceSensor_Init();
+  TraceSensor_Init();
   //IR_Init();
   UltraSound_Init();
   rover = Rover::getInstance();
@@ -76,7 +76,7 @@ void setup() {
 
 void loop() {
   US_DebugInfo();
-  //Trace_DebugInfo();
+  Trace_DebugInfo();
   //rover->Rover_DebugInfo();
   //Trace_Enable();
   //IRControl_Enable();
