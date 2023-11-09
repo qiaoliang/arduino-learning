@@ -74,7 +74,7 @@ void setup() {
   TraceSensor_Init();
   UltraSound_Init();
   OBS_Init();
-  //MyServo_Init();
+  MyServo_Init();
 
 
 
@@ -85,14 +85,10 @@ int degree =10;
 void loop() {
   Trace_DebugInfo();
   US_DebugInfo();
-  degree = -degree;
   OBS_DebugInfo();
-  //MyServo_rotate(degree);
-
-
-
-
-  //rover->Rover_DebugInfo();
+  degree = -degree;
+  MyServo_rotate(degree);
+  rover->Rover_DebugInfo();
   //Trace_Enable();
   //IRControl_Enable();
   //rover->Rover_DebugInfo();
