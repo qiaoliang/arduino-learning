@@ -13,7 +13,7 @@
 #define L_PWM 10
 
 #define MAX_SPEED 10000
-#define MIN_SPEED 1000
+#define MIN_SPEED 10000
 #define PWD_UNIT 255/MAX_SPEED
 
 #define MAX_SPEED 3
@@ -50,6 +50,7 @@ public:
   void start(){
     lastspeed =speed;
     speed = MIN_SPEED;
+    act();
   }
   void backward() {
     if(speed >0){
@@ -68,7 +69,7 @@ public:
       speed = -speed;
     }
     if(speed=0){
-      lastspeed =speed;
+      lastspeed = speed;
       speed = MIN_SPEED;
     }
     act();
@@ -103,6 +104,8 @@ class Rover {
   int lastState;
   Moto* lMotor;
   Moto* rMotor;
+  String command="None";
+  String lastCommand="None";
   int num = 0;
   int state = 0;
 public:
@@ -112,26 +115,42 @@ public:
     rMotor = r;
   }
   static Rover* getInstance() {
-    Moto* r = new Moto("L",L_PIN_1, L_PIN_2, L_PWM);
-    Moto* l = new Moto("R",R_PIN_1, R_PIN_2, R_PWM);
+    Moto* r = new Moto('L',L_PIN_1, L_PIN_2, L_PWM);
+    Moto* l = new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
     return new Rover(l, r);
   }
-
+  void start(){
+    command = "start";
+    lMotor->start();
+    rMotor->start();
+  }
   void left() {
+    command = "left";
     lMotor->stop();
     rMotor->forward();
   }
   void right() {
+    command = "right";
     lMotor->forward();
     rMotor->stop();
   }
   void forward() {
+    command = "forward";
     lMotor->forward();
     rMotor->forward();
   }
   void stop() {
+    command = "stop";
     lMotor->stop();
     rMotor->stop();
+  }
+  void Rover_DebugInfo(){
+    if(command!=lastCommand){
+      lastCommand = command;
+      Serial.println("command = "+ command);
+    }
+    lMotor->Moto_DebugInfo();
+    rMotor->Moto_DebugInfo();
   }
 };
 

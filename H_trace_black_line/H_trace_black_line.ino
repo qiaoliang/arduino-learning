@@ -3,7 +3,7 @@
 #include "irControl.h"
 #include "ultrasound.h"
 
-Rover* rover = Rover::getInstance();
+Rover* rover ;
 Moto* moto = Moto::getInst('L');
 int count =0;
 
@@ -12,16 +12,17 @@ void setup() {
   TraceSensor_Init();
   IR_Init();
   UltraSound_Init();
-  moto->Moto_DebugInfo();
+  rover = Rover::getInstance();
+  rover->start();
 }
 
 float lastvalue=0.0;
 
 void loop() {
-  US_DebugInfo();
-  IR_DebugInfo();
+  //US_DebugInfo();
+  //IR_DebugInfo();
   Trace_DebugInfo();
-  moto->Moto_DebugInfo();
+  rover->Rover_DebugInfo();
   long signal = IR_detect();
   switch(signal){
   case 2:
