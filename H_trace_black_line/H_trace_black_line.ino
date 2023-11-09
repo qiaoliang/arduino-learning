@@ -73,11 +73,14 @@ void setup() {
 
 
 void loop() {
-  IR_DebugInfo();
+  //IR_DebugInfo();
   US_DebugInfo();
   Trace_DebugInfo();
   //rover->Rover_DebugInfo();
   //Trace_Enable();
+  uint16_t ret = IR_detect();
+  if(ret!=0)
+    Serial.println(ret,HEX);
   //IRControl_Enable();
   //rover->Rover_DebugInfo();
 

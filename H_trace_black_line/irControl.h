@@ -43,27 +43,9 @@ void IR_Read() {
   }
 }
 
-long IR_detect() {
+uint8_t IR_detect() {
   IR_Read();
-  switch (current_irdata) {
-    case KEY_2:
-      key = (uint8_t)2;
-      break;
-    case KEY_5:
-      key = (uint8_t)5;
-      break;
-    case KEY_8:
-      key = (uint8_t)8;
-      break;
-    case KEY_4:
-      key = (uint8_t)4;
-      break;
-    case KEY_6:
-      key = (uint8_t)6;
-      break;
-    default:
-      return 0;
-  }
+  return current_irdata;
 }
 void IR_DebugInfo() {
   IR_Read();
