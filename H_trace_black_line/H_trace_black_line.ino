@@ -70,9 +70,8 @@ void enable_irControl(){
   }
 }
 void loop() {
-  IRTEST();
+  IR_DebugInfo();
   US_DebugInfo();
-  //IR_DebugInfo();
   Trace_DebugInfo();
 
   //enable_trace();
