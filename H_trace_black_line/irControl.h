@@ -12,19 +12,35 @@
 
 long last_irdata;
 void IR_Init(){
-  IrReceiver.begin(IR_RECEIVE_PIN);
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // 启动红外接收
 }
 long ir_item;
 long readIr(){
   long ret = 0;
   if (IrReceiver.decode()) {
-    ret = IrReceiver.decodedIRData.decodedRawData;             // 得到接收到的按键值                     
+    ret = IrReceiver.decodedIRData.decodedRawData;             // 得到接收到的按键值
+    Serial.println(ret,HEX);             
     IrReceiver.resume();                                           // Enable receiving of the next value
+    return ret;
   } 
-  return ret;
+  return -1;
 }
+
+void IRTEST(){
+  if (IrReceiver.decode()) {
+    ir_item=IrReceiver.decodedIRData.decodedRawData;
+    Serial.println(ir_item,HEX); //用16进制显示的按键值
+    IrReceiver.printIRResultShort(&Serial); // Print complete received data in one line
+    IrReceiver.resume(); // Enable receiving of the next value
+  } else {
+    //move(ir_item);
+  }
+
+}
+
 long IR_detect(){
   long ir_item = readIr();
+  return ir_item;
   switch(ir_item){
     case KEY_2:
       return 2;
@@ -37,13 +53,12 @@ long IR_detect(){
     case KEY_6:
       return 6;
     default:
-      return 0xFF;
+      return 0;
   }
 }
 void IR_DebugInfo(){
-  long value =IR_detect();
-  if(value!=0xFF){
-    Serial.print("红外遥控：");
-    Serial.println(value, HEX);   //用16进制显示 
-  }
+  long value =readIr();
+    last_irdata = value;
+    //Serial.print("红外遥控：");
+    //Serial.println(value, HEX);   //用16进制显示 
 }

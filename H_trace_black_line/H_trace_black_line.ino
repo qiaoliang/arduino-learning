@@ -12,51 +12,70 @@ void setup() {
   TraceSensor_Init();
   IR_Init();
   UltraSound_Init();
-  rover = Rover::getInstance();
-  rover->start();
+  //rover = Rover::getInstance();
+  //rover->start();
 }
 
-float lastvalue=0.0;
+void enable_trace(){
+  unsigned char signal = trace_check();
+  switch(signal){
+    case 0b0000:
+    rover->stop();
+    rover->Rover_DebugInfo();
+    break;
+    case 0b0110:
+    rover->forward();
+    rover->Rover_DebugInfo();
+    break;
+    case 0b1100:
+    case 0b1110:
+    rover->right();
+    rover->Rover_DebugInfo();
+    break;
+    case 0b0011:
+    case 0b0111:
+    rover->left();
+    rover->Rover_DebugInfo();
+    break;
+    case 0b1111:
+    rover->stop();
+    rover->Rover_DebugInfo();
+    break;
+  }
+}
 
-void loop() {
-  //US_DebugInfo();
-  //IR_DebugInfo();
-  Trace_DebugInfo();
-  rover->Rover_DebugInfo();
+void enable_irControl(){
   long signal = IR_detect();
   switch(signal){
   case 2:
+    rover->start();
+    rover->Rover_DebugInfo();
     break;
   case 4:
+    rover->left();
+    rover->Rover_DebugInfo();    
     break;
   case 6:
+    rover->right();
+    rover->Rover_DebugInfo();
     break;
   case 5:
+    rover->stop();
+    rover->Rover_DebugInfo();
     break;
   case 8:
     break;
   default:
     break;
   }
+}
+void loop() {
+  IRTEST();
+  US_DebugInfo();
+  //IR_DebugInfo();
+  Trace_DebugInfo();
 
-  signal = trace_check();
-  switch(signal){
-    case 0b0000:
-    rover->stop();
-    break;
-    case 0b0110:
-    rover->forward();
-    break;
-    case 0b1100:
-    case 0b1110:
-    rover->right();
-    break;
-    case 0b0011:
-    case 0b0111:
-    rover->left();
-    break;
-    case 0b1111:
-    rover->stop();
-    break;
-  }
+  //enable_trace();
+  //enable_irControl();
+
 }

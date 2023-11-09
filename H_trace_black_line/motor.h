@@ -4,13 +4,13 @@
 #include <Arduino.h>
 #include <stdio.h>
 // 车上马达 A 的引脚连接
-#define R_PIN_1 6
-#define R_PIN_2 7
-#define R_PWM 11
+#define L_PIN_1 6
+#define L_PIN_2 7
+#define L_PWM 11
 
-#define L_PIN_1 4
-#define L_PIN_2 5
-#define L_PWM 10
+#define R_PIN_1 4
+#define R_PIN_2 5
+#define R_PWM 10
 
 #define MAX_SPEED 10000
 #define MIN_SPEED 10000
@@ -36,7 +36,10 @@ public:
     pinMode(pin2, OUTPUT);
   }
   static Moto* getInst(unsigned char name){
-    return new Moto('L',L_PIN_1, L_PIN_2, L_PWM);    
+    if(name =='L')
+      return new Moto('L',L_PIN_1, L_PIN_2, L_PWM);
+    if(name='R')
+      return new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
   }
   void setSpeed(int v){
     lastspeed = speed;
@@ -115,8 +118,8 @@ public:
     rMotor = r;
   }
   static Rover* getInstance() {
-    Moto* r = new Moto('L',L_PIN_1, L_PIN_2, L_PWM);
-    Moto* l = new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
+    Moto* l = Moto::getInst('L');
+    Moto* r = Moto::getInst('R');
     return new Rover(l, r);
   }
   void start(){
