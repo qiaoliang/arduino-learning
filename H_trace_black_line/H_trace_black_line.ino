@@ -7,8 +7,6 @@
 
 
 Rover* rover = NULL ;
-int count =0;
-
 
 void Trace_Enable(){
   unsigned char signal = trace_check();
@@ -82,6 +80,7 @@ void setup() {
 }
 
 int degree =10;
+int count,step;
 void loop() {
   Trace_DebugInfo();
   US_DebugInfo();
@@ -92,5 +91,21 @@ void loop() {
   //Trace_Enable();
   //IRControl_Enable();
   //rover->Rover_DebugInfo();
-
+  count++;
+  if(count ==40){count =0;}
+  step = count%10;
+  switch(step){
+  case 0:
+    rover->stop();
+    break;
+  case 1:
+    rover->start();
+    break;
+  case 2:
+    rover->left();
+    break;
+  case 3:
+    rover->right();
+    break;
+  }
 }

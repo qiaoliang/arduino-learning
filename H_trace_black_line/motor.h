@@ -41,11 +41,6 @@ public:
     if(name='R')
       return new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
   }
-  void setSpeed(int v){
-    lastspeed = speed;
-    speed= v;
-  }
-
   void stop() {
     lastspeed =speed;
     speed =0;
@@ -55,26 +50,9 @@ public:
     speed = MIN_SPEED;
     act();
   }
-  void backward() {
-    if(speed >0){
-      lastspeed =speed;
-      speed = -speed;
-    }
-    if(speed=0){
-      lastspeed =speed;
-      speed = -MIN_SPEED;
-    }
-    act();
-  }
   void forward() {
-    if(speed <0){
-      lastspeed =speed;
-      speed = -speed;
-    }
-    if(speed=0){
-      lastspeed = speed;
-      speed = MIN_SPEED;
-    }
+    lastspeed = speed;
+    speed = MIN_SPEED;
     act();
   }
   void Moto_DebugInfo(){
