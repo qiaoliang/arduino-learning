@@ -2,6 +2,7 @@
 #include "tracesensor.h"
 #include "irControl.h"
 #include "ultrasound.h"
+#include "InfraRED.h"
 
 Rover* rover = NULL ;
 int count =0;
@@ -69,6 +70,7 @@ void setup() {
   TraceSensor_Init();
   //IR_Init();
   UltraSound_Init();
+  OBS_Init();
   rover = Rover::getInstance();
   rover->start();
 }
@@ -77,6 +79,7 @@ void setup() {
 void loop() {
   US_DebugInfo();
   Trace_DebugInfo();
+  OBS_DebugInfo();
   //rover->Rover_DebugInfo();
   //Trace_Enable();
   //IRControl_Enable();
