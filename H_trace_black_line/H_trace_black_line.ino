@@ -7,16 +7,8 @@ Rover* rover ;
 Moto* moto = Moto::getInst('L');
 int count =0;
 
-void setup() {
-  Serial.begin(9600);
-  TraceSensor_Init();
-  IR_Init();
-  UltraSound_Init();
-  //rover = Rover::getInstance();
-  //rover->start();
-}
 
-void enable_trace(){
+void Trace_Enable(){
   unsigned char signal = trace_check();
   switch(signal){
     case 0b0000:
@@ -44,7 +36,7 @@ void enable_trace(){
   }
 }
 
-void enable_irControl(){
+void IRControl_Enable(){
   long signal = IR_detect();
   switch(signal){
   case 2:
@@ -69,12 +61,24 @@ void enable_irControl(){
     break;
   }
 }
+
+void setup() {
+  Serial.begin(9600);
+  TraceSensor_Init();
+  IR_Init();
+  UltraSound_Init();
+  //rover = Rover::getInstance();
+  //rover->start();
+}
+
+
 void loop() {
   IR_DebugInfo();
   US_DebugInfo();
   Trace_DebugInfo();
-
-  //enable_trace();
-  //enable_irControl();
+  //rover->Rover_DebugInfo();
+  //Trace_Enable();
+  //IRControl_Enable();
+  //rover->Rover_DebugInfo();
 
 }
