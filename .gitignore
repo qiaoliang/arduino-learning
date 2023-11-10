@@ -1,3 +1,5 @@
+.pio/
+.vscode/
 **/.DS_*
 **/build/
 HELL*/
