@@ -6,43 +6,48 @@
 #include "ultraSound.h"
 #include "InfraRED.h"
 
+Rover *rover = NULL;
 
-Rover* rover = NULL ;
 
-void Trace_Enable(){
+void Trace_Enable()
+{
   unsigned char signal = trace_check();
-  switch(signal){
-    case 0b0000:
+  switch (signal)
+  {
+  case 0b0000:
     rover->stop();
     rover->Rover_DebugInfo();
     break;
-    case 0b0110:
+  case 0b0110:
     rover->forward();
     rover->Rover_DebugInfo();
     break;
-    case 0b1100:
-    case 0b1110:
+  case 0b1100:
+  case 0b1110:
     rover->right();
     rover->Rover_DebugInfo();
     break;
-    case 0b0011:
-    case 0b0111:
+  case 0b0011:
+  case 0b0111:
     rover->left();
     rover->Rover_DebugInfo();
     break;
-    case 0b1111:
+  case 0b1111:
     rover->stop();
     rover->Rover_DebugInfo();
     break;
   }
 }
 
-void IRControl_Enable(){
-  if(rover == NULL){
+void IRControl_Enable()
+{
+  if (rover == NULL)
+  {
     Serial.println("rover 需要先初始化。");
   }
   uint8_t signal = IR_detect();
-  switch(signal){
+  switch (signal)
+  {
   case KEY_2:
     rover->start();
     rover->Rover_DebugInfo();
@@ -66,47 +71,17 @@ void IRControl_Enable(){
   }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
-  rover = Rover::getInstance();
-  rover->start();
-  TraceSensor_Init();
   UltraSound_Init();
-  OBS_Init();
-  //MyServo_Init();
-
-
-
-  //IR_Init();
+  rover = Rover::getInstance();
 }
 
-int degree =10;
-int count,step;
-void loop() {
-  Trace_DebugInfo();
-  US_DebugInfo();
-  OBS_DebugInfo();
-  degree = -degree;
-  MyServo_rotate(degree);
+int degree = 10;
+int count, step;
+void loop()
+{
   rover->Rover_DebugInfo();
-  //Trace_Enable();
-  //IRControl_Enable();
-  //rover->Rover_DebugInfo();
-  count++;
-  if(count ==40){count =0;}
-  step = count%10;
-  switch(step){
-  case 0:
-    rover->stop();
-    break;
-  case 1:
-    rover->start();
-    break;
-  case 2:
-    rover->left();
-    break;
-  case 3:
-    rover->right();
-    break;
-  }
+  UltraSound_Following_enable();
 }

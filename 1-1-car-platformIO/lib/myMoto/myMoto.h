@@ -40,16 +40,20 @@ public:
   }
   void stop() {
     lastspeed =speed;
-    speed =0;
+    speed = 0;
+    act();
   }
   void start(){
-    lastspeed = speed;
-    speed = MAX_MOTO_SPEED;
-    act();
+    forward();
   }
   void forward() {
     lastspeed = speed;
     speed = MAX_MOTO_SPEED;
+    act();
+  }
+  void back(){
+    lastspeed = speed;
+    speed = - MAX_MOTO_SPEED;
     act();
   }
   void Moto_DebugInfo(){
@@ -75,7 +79,7 @@ private:
       digitalWrite(pin1, 0);
       digitalWrite(pin2, 0);
     }
-    analogWrite(pwm_pin, speed);
+    analogWrite(pwm_pin, abs(speed));
     delay(200);
   }
 };
@@ -119,6 +123,13 @@ public:
     command = "forward";
     lMotor->forward();
     rMotor->forward();
+  }
+  void back() {
+    if (!health_check())
+      return;
+    command = "back";
+    lMotor->back();
+    rMotor->back();
   }
   void stop() {
     if(!health_check()) return;
