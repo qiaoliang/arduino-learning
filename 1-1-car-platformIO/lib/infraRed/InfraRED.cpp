@@ -1,6 +1,5 @@
-// 车上左右红外测距接收器的引脚
-#define INFRA_DISTANCE_DETECT_LEFT_PIN  8
-#define INFRA_DISTANCE_DETECT_RIGHT_PIN 9
+#include <Arduino.h>
+#include "InfraRED.h"
 
 void OBS_Init() {
   // 绑定红外测距接收器

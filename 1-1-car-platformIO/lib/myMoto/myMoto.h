@@ -1,5 +1,5 @@
-#ifndef MOTOR_H
-#define MOTOR_H
+#ifndef __MYMOTO_H__
+#define __MYMOTO_H__
 
 #include <Arduino.h>
 #include <stdio.h>
@@ -12,14 +12,14 @@
 #define R_PIN_2 5
 #define R_PWM 10
 
-#define MAX_SPEED 255
+#define MAX_MOTO_SPEED 255
 
 class Moto {
   unsigned char name;
   int pin1;
   int pin2;
   int pwm_pin;
-  int speed;
+  int speed = 0;
 
 public:
   Moto(unsigned char n,int p1, int p2, int pwm) {
@@ -36,31 +36,28 @@ public:
       return new Moto('L',L_PIN_1, L_PIN_2, L_PWM);
     if(name=='R')
       return new Moto('R',R_PIN_1, R_PIN_2, R_PWM);
-    else
-    {
-      return NULL;
-    }
-
+    return NULL;
   }
   void stop() {
     lastspeed =speed;
     speed =0;
   }
   void start(){
-    lastspeed =speed;
-    speed = MAX_SPEED;
+    lastspeed = speed;
+    speed = MAX_MOTO_SPEED;
     act();
   }
   void forward() {
     lastspeed = speed;
-    speed = MAX_SPEED;
+    speed = MAX_MOTO_SPEED;
     act();
   }
   void Moto_DebugInfo(){
     if(lastspeed==speed)
       return;
+    lastspeed = speed;
     Serial.print("马达:");
-    Serial.print(String(name));
+    Serial.print(name);
     Serial.print("--");
     Serial.println(speed);
   }
@@ -78,7 +75,7 @@ private:
       digitalWrite(pin1, 0);
       digitalWrite(pin2, 0);
     }
-    analogWrite(pwm_pin, MAX_SPEED);
+    analogWrite(pwm_pin, speed);
     delay(200);
   }
 };

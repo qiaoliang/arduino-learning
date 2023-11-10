@@ -1,8 +1,9 @@
-#include "motor.h"
-#include "myservo.h"
-#include "tracesensor.h"
+#include <Arduino.h>
+#include "myMoto.h"
+#include "myServo.h"
+#include "traceSensor.h"
 #include "irControl.h"
-#include "ultrasound.h"
+#include "ultraSound.h"
 #include "InfraRED.h"
 
 
@@ -48,7 +49,7 @@ void IRControl_Enable(){
     break;
   case KEY_4:
     rover->left();
-    rover->Rover_DebugInfo();    
+    rover->Rover_DebugInfo();
     break;
   case KEY_6:
     rover->right();

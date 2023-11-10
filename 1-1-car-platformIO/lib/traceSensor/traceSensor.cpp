@@ -1,5 +1,4 @@
-
-
+#include <Arduino.h>
 #define TRACE_PIN1 A1  // 寻迹引脚， 车右起第1个
 #define TRACE_PIN2 A2  // 寻迹引脚右2
 #define TRACE_PIN3 A3  // 寻迹引脚右3

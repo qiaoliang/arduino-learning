@@ -1,5 +1,7 @@
-#ifndef MYSERVO_H
-#define MYSERVO_H
+#ifndef __MYSERVO_H__
+#define __MYSERVO_H__
+
+#include <Arduino.h>
 #include <Servo.h>
 
 #define SERVO_PIN A0
@@ -7,14 +9,20 @@
 Servo myservo;
 
 int preAngle = INIT_ANGLE;
-
+/**
+ * @brief 超声波舵机的初始化
+ *
+ */
 void MyServo_Init() {
   myservo.attach(SERVO_PIN);
   myservo.write(INIT_ANGLE);
 }
 
+/**
+ * @brief
+ *
+ */
 
-//以当前角度为基点，偏转一定的角度。正数为顺时针，负数为逆时针。
 void MyServo_rotate(int offset) {
   if(!myservo.attached())
     return;
