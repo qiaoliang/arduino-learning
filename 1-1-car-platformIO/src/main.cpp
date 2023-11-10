@@ -8,33 +8,48 @@
 
 Rover *rover = NULL;
 
+void OBS_Enable()
+{
+  uint8_t signal = OBS_Detect();
+  switch (signal)
+  {
+  case 3: // 0b11
+    rover->stop();
+    break;
+  case 0: // 0b00
+    rover->forward();
+    break;
+  case 2: // 0b10
+    rover->right();
+    break;
+  case 1:
+    rover->left();
+    break;
+  default:
+    rover->keepMove();
+    break;
+  }
+}
 
 void Trace_Enable()
 {
-  unsigned char signal = trace_check();
+  uint8_t signal = trace_check();
   switch (signal)
   {
-  case 0b0000:
+  case 3:  // 0b11
     rover->stop();
-    rover->Rover_DebugInfo();
     break;
-  case 0b0110:
+  case 0:  // 0b00
     rover->forward();
-    rover->Rover_DebugInfo();
     break;
-  case 0b1100:
-  case 0b1110:
+  case 2:  // 0b10
     rover->right();
-    rover->Rover_DebugInfo();
     break;
-  case 0b0011:
-  case 0b0111:
+  case 1:
     rover->left();
-    rover->Rover_DebugInfo();
     break;
-  case 0b1111:
-    rover->stop();
-    rover->Rover_DebugInfo();
+  default:
+    rover->keepMove();
     break;
   }
 }

@@ -6,12 +6,13 @@ void OBS_Init() {
   pinMode(INFRA_DISTANCE_DETECT_RIGHT_PIN, INPUT);
   pinMode(INFRA_DISTANCE_DETECT_LEFT_PIN, INPUT);
 }
-unsigned char last_obsdata,current_obsdata;
-unsigned char OBS_Detect() {
+uint8_t last_obsdata,current_obsdata;
+uint8_t OBS_Detect()
+{
   last_obsdata = current_obsdata;
-  unsigned char left= digitalRead(INFRA_DISTANCE_DETECT_LEFT_PIN);
-  unsigned char right = digitalRead(INFRA_DISTANCE_DETECT_RIGHT_PIN);
-  current_obsdata = left+right;
+  uint8_t left = digitalRead(INFRA_DISTANCE_DETECT_LEFT_PIN);
+  uint8_t right = digitalRead(INFRA_DISTANCE_DETECT_RIGHT_PIN);
+  current_obsdata = (left<<1)|right;
   return current_obsdata;
 }
 
