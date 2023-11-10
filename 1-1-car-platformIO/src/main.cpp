@@ -38,50 +38,32 @@ void Trace_Enable()
     break;
   }
 }
-
+/**
+ * @brief 根据遥控器的按键移动小车. 2 - 向前, 4 - 向左 , 5 - 停 , 6 - 向右 , 8 - 向后
+ *
+ */
 void IRControl_Enable()
 {
   if (rover == NULL)
   {
     Serial.println("rover 需要先初始化。");
+    return;
   }
   uint8_t signal = IR_detect();
-  switch (signal)
-  {
-  case KEY_2:
-    rover->start();
-    rover->Rover_DebugInfo();
-    break;
-  case KEY_4:
-    rover->left();
-    rover->Rover_DebugInfo();
-    break;
-  case KEY_6:
-    rover->right();
-    rover->Rover_DebugInfo();
-    break;
-  case KEY_5:
-    rover->stop();
-    rover->Rover_DebugInfo();
-    break;
-  case KEY_8:
-    break;
-  default:
-    break;
-  }
+  rover->act(signal);
 }
 
 void setup()
 {
   Serial.begin(9600);
   UltraSound_Init();
+  IR_Init();
   rover = Rover::getInstance();
 }
 
-int degree = 10;
-int count, step;
 void loop()
 {
   rover->Rover_DebugInfo();
   UltraSound_Following_enable();
+  IRControl_Enable();
 }

@@ -65,22 +65,32 @@ public:
     Serial.print("--");
     Serial.println(speed);
   }
+  void keepRun(){
+    act();
+  }
+
+
 private:
   int lastspeed=0;
-  void act() {
-    if(speed>0 )
+  void act()
+  {
+    if (speed > 0)
     {
       digitalWrite(pin1, 1);
       digitalWrite(pin2, 0);
-    }else if(speed <0){
+    }
+    else if (speed < 0)
+    {
       digitalWrite(pin1, 0);
       digitalWrite(pin2, 1);
-    }else{
+    }
+    else
+    {
       digitalWrite(pin1, 0);
       digitalWrite(pin2, 0);
     }
     analogWrite(pwm_pin, abs(speed));
-    delay(200);
+    delay(20);
   }
 };
 class Rover {
@@ -101,22 +111,17 @@ public:
     Moto* r = Moto::getInst('R');
     return new Rover(l, r);
   }
-  void start(){
-    if(!health_check()) return;
-    command = "start";
-    lMotor->start();
-    rMotor->start();
-  }
+
   void left() {
     if(!health_check()) return;
     command = "left";
-    lMotor->stop();
+    lMotor->back();
     rMotor->forward();
   }
   void right() {
     command = "right";
     lMotor->forward();
-    rMotor->stop();
+    rMotor->back();
   }
   void forward() {
     if(!health_check()) return;
@@ -131,11 +136,41 @@ public:
     lMotor->back();
     rMotor->back();
   }
+  void keepMove(){
+    lMotor->keepRun();
+    rMotor->keepRun();
+  }
   void stop() {
     if(!health_check()) return;
     command = "stop";
     lMotor->stop();
     rMotor->stop();
+  }
+  void act(uint8_t command)
+  {
+    Serial.print(" care command : ");
+    Serial.println((char)command);
+    switch (command)
+    {
+    case '2':
+      forward();
+      break;
+    case '4':
+      left();
+      break;
+    case '5':
+      stop();
+    case '6':
+      right();
+    case '8':
+      back();
+    case 'm':
+      keepMove();
+      break;
+    default:
+      keepMove();
+      break;
+    }
   }
   void Rover_DebugInfo(){
     if(!health_check()) return;

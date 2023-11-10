@@ -31,33 +31,60 @@
 #define KEY_9 0x4A
 
 #include <IRremote.hpp>
-uint16_t last_irdata, current_irdata;
-uint8_t key;
+uint8_t last_key, current_key;
+
+char getKey(uint8_t value){
+  char ret;
+  switch (value)
+  {
+  case KEY_2:
+    ret = '2';
+    break;
+  case KEY_4:
+    ret = '4';
+    break;
+  case KEY_6:
+    ret = '6';
+    break;
+  case KEY_8:
+    ret = '8';
+    break;
+  case KEY_5:
+    ret = '5';
+    break;
+  default:
+    ret ='?';
+    break;
+  }
+  return ret;
+
+}
 void IR_Init()
 {
     IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // 启动红外接收
 }
 
-void IR_Read()
-{
-    if (IrReceiver.decode())
-    {
-        last_irdata = current_irdata;
-        current_irdata = IrReceiver.decodedIRData.command;
-        Serial.print("红外遥控：");
-        Serial.println(current_irdata, HEX);    // 用16进制显示的按键值
-        IrReceiver.printIRResultShort(&Serial); // Print complete received data in one line
-        IrReceiver.resume();                    // Enable receiving of the next value
-    }
-}
-
 uint8_t IR_detect()
 {
-    IR_Read();
-    return current_irdata;
+    uint8_t ret='m';
+    if (IrReceiver.decode())
+    {
+        last_key = current_key;
+        current_key = IrReceiver.decodedIRData.command;
+        IrReceiver.printIRResultShort(&Serial); // Print complete received data in one line
+        IrReceiver.resume();                    // Enable receiving of the next value
+        ret = getKey(current_key);
+    }
+    return ret;
 }
+
 void IR_DebugInfo()
 {
-    IR_Read();
+    IR_detect();
+    Serial.print("红外遥控：");
+    Serial.print(current_key, HEX); // 用16进制显示的按键值
+    Serial.print(" --> ");
+    Serial.println(getKey(current_key));
+    Serial.println(current_key, HEX); // 用16进制显示的按键值
 }
 #endif
