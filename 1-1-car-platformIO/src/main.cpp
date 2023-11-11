@@ -14,10 +14,10 @@ void OBS_Enable()
   switch (signal)
   {
   case 3: // 0b11
-    rover->stop();
+    rover->forward();
     break;
   case 0: // 0b00
-    rover->forward();
+    rover->stop();
     break;
   case 2: // 0b10
     rover->right();
@@ -71,14 +71,16 @@ void IRControl_Enable()
 void setup()
 {
   Serial.begin(9600);
-  UltraSound_Init();
-  IR_Init();
+  //UltraSound_Init();
+  OBS_Init();
+  //IR_Init();
   rover = Rover::getInstance();
 }
 
 void loop()
 {
   rover->Rover_DebugInfo();
-  UltraSound_Following_enable();
-  IRControl_Enable();
+  //UltraSound_Following_enable();
+  //IRControl_Enable();
+  OBS_Enable();
 }
