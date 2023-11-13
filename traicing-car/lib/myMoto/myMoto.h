@@ -12,7 +12,7 @@
 #define R_PIN_2 5
 #define R_PWM 10
 
-#define MAX_MOTO_SPEED 255
+#define MAX_MOTO_SPEED 80
 
 class Moto {
   unsigned char name;

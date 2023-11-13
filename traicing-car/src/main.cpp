@@ -36,17 +36,19 @@ void Trace_Enable()
   uint8_t signal = trace_check();
   switch (signal)
   {
-  case 3:  // 0b11
-    rover->stop();
-    break;
-  case 0:  // 0b00
+  case 0b1111:
     rover->forward();
     break;
-  case 2:  // 0b10
-    rover->right();
+  case 0B0000:
+    rover->stop();
     break;
-  case 1:
+  case 0b1100:  // 0b10
+  case 0b1110:
     rover->left();
+    break;
+  case 0b0011:
+  case 0b0111:
+    rover->right();
     break;
   default:
     rover->keepMove();
@@ -72,15 +74,18 @@ void setup()
 {
   Serial.begin(9600);
   //UltraSound_Init();
-  OBS_Init();
+  //OBS_Init();
   //IR_Init();
+  TraceSensor_Init();
   rover = Rover::getInstance();
+  rover->forward();
 }
 
 void loop()
 {
   rover->Rover_DebugInfo();
-  //UltraSound_Following_enable();
-  //IRControl_Enable();
-  OBS_Enable();
+  Trace_Enable();
+  // UltraSound_Following_enable();
+  // IRControl_Enable();
+  //OBS_Enable();
 }
