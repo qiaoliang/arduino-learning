@@ -2,8 +2,10 @@
 #define MYSERVO_H
 
 #include <Arduino.h>
+#include <ESP8266WiFi.h>
 #include <Servo.h>
 
+#define SERVO_PIN 2
 // 定义 0-180 角度值转为对应高电平脉冲信号时间宽度（脉冲宽度）int maxPos = 180;
 int minPos = 0;
 int maxPos = 180;
@@ -36,7 +38,7 @@ int toPwm(float degree)
 
 void Servo_Init()
 {
-    S.attach(16, 500, 2500); // 绑定针脚,设置信号脉冲宽度范围, 以便精确控制转到的角度;
+    S.attach(SERVO_PIN, 500, 2500); // 绑定针脚,设置信号脉冲宽度范围, 以便精确控制转到的角度;
     minPos = toPwm((float)minPos);
     maxPos = toPwm((float)maxPos);
     S.write(toPwm(30)); // 写入新角度值,控制舵机转动
