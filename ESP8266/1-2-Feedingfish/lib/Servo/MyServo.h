@@ -20,11 +20,11 @@ Servo S;
 int toPwm(float degree)
 { // 返回  把角度值转换为维持高电平的时间长度
     unsigned long pulseWidth;
-    if (degree < 360.0)
-    { // 值少于360视为角度,否则，入参被视为时间长度，单位为微秒
+    if (degree <= 180.0)
+    { // 值少于180, 视为角度,否则，是脉冲宽度
         unsigned long pulseWidth = degree * factor;
         if ((float)(pulseWidth - (int)pulseWidth) >= 0.45) // 四舍五入
-            degree = degree + 1.0;
+            pulseWidth = pulseWidth + 1.0;
         return 500 + (int)pulseWidth; // 500 对应着起点，即 0 度。
     }
     else

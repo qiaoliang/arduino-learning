@@ -3,7 +3,6 @@
  * @author qiaoliang
  * @brief 喂鱼器.  每隔1小时,投喂一次,每次三转.
  * @version 0.1
- * @date 2023-11-24
  *
  * @copyright Copyright (c) 2023
  *
