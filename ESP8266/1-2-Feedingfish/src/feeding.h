@@ -6,7 +6,7 @@
 
 extern int targetDegree ;
 
-const int TotalCount = 3;
+const int TotalCount = 3;  // 每次投食都会转三次.
 const int SPEED = 5; // 每隔5秒转动一次投食器
 const int INTERVAL = 60;  // 每隔60秒喂一次鱼
 
