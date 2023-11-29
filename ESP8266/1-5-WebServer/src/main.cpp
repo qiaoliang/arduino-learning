@@ -24,16 +24,73 @@ String STA_SSID;
 String STA_PSK;
 int counter = 0;
 
-ESP8266WebServer webServer(80); // 建立Web服务对象,HTTP端口80
+ESP8266WebServer webService(80); // 建立Web服务对象,HTTP端口80
+String currentSettings()
+{                              // 返回Json格式的当前的设置
+  StaticJsonDocument<256> doc; // 栈内存JSON文档对象
+  doc["C"] = "1";
+  doc["S"] = "1";
+  doc["I"] = "1";
+  String ret;
+  serializeJson(doc, ret); // 单行格式 到变量
+  doc.clear();
+  return ret; //{"C":1,"S":1,"I":1}
+}
 
 void command()
-{
-  webServer.send(200, "text/plain", "Hello world"); // 回复HTTP请求
+{ // 网址里不能用 + 符号,会变成空格
+  String message = "";
+  if (webService.args() == 0)
+  {
+    if (WiFi.status() == WL_CONNECTED)
+    { // 成功连网
+      IPAddress IP = WiFi.localIP();
+      message = IP.toString() + "\n";
+    }
+    message += currentSettings();
+  }
+
+  static String date; // 静态变量时间戳
+
+  for (int i = 0; i < webService.args(); i++)
+  {                                   // http://ip/command?x90&y90
+    String t = webService.argName(i); // 提取一个指令
+    if (t.equalsIgnoreCase("time"))
+    {
+      if (date != webService.arg(i))
+        date = webService.arg(i);
+      continue;
+    }
+    Serial.println(t);
+
+    t.replace("_", "+"); // 把"_"恢复为"+"; 网页脚本arg=arg.replace(/\+/g ,"_"); //把'+'替换为'_'
+
+    Serial.print("HTTP指令:");
+    Serial.println(t);
+    message += "\n" + t + "\n";
+    // message += Command(t); // 解析 并 执行 命令
+  }
+
+  webService.send(200, "text/plain", message);
 }
 void handleUserRequest()
 {
+  String url = webService.uri(); // 获取用户请求网址信息
 
-  webServer.send(404, "text/plain", "404 Not Found"); // 如果没有匹配的URL,则回复404 Not Found
+  Serial.print(" 用户请求 ");
+  Serial.println(url);
+
+  if (url.endsWith("/"))
+  {                      // 如果访问地址以"/"为结尾
+    url = "/index.html"; // 将访问地址修改为/index.html文件
+    if (!LittleFS.exists(url))
+    { // 还未上传首页文件跳转 文件上传 页
+      webService.sendHeader("Location", "/upload.html");
+      webService.send(303); // 303跳转
+      return;
+    }
+  }
+  webService.send(404, "text/plain", "404 Not Found"); // 如果没有匹配的URL,则回复404 Not Found
 }
 
 void Enable_STA_AND_AP(){
@@ -114,12 +171,15 @@ void setup()
   digitalWrite(LED_BUILTIN, LOW); // Mini ESP8266板LED_BUILTIN=GPIO 2,LOW=亮灯,HIGH=灭灯
   WiFi_Init();
   //--------------开启WEB网页服务器.支持网页控制------------------------------------------
-  webServer.on("/", HTTP_GET, command); // 响应用户的请求
-  webServer.onNotFound(handleUserRequest); // 对于未定义请求统统让 handleUserRequest 处理
-  webServer.begin(80);                     // 启动WEB服务器
+  webService.on("/", HTTP_GET, command); // 响应用户的请求
+  webService.onNotFound(handleUserRequest); // 对于未定义请求统统让 handleUserRequest 处理
+  webService.begin(80);                     // 启动WEB服务器
 }
+
+
+
 
 void loop()
 {
-  webServer.handleClient(); // 处理客户HTTP访问,上传文件,更新固件
+  webService.handleClient(); // 处理客户HTTP访问,上传文件,更新固件
 }
