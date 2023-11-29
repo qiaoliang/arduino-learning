@@ -1,0 +1,6 @@
+{
+    "STA_SSID": "I_am_STA_SSID",
+    "STA_PSK": "I_am_STA_PASSWORD",
+    "AP_SSID": "your_AP_SSID",
+    "AP_PSK": "your_AP_PASSWORD"
+}

@@ -10,30 +10,51 @@
 
 #include <Arduino.h>
 #include <LittleFS.h> // ESP8266开发板自带4MB闪存空间,可以用来读写存删文件
-#include "MyServo.h"
-#include "feeding.h"
-#include "FeedConfig.h"
+#include "SysConfig.h"
 
-FeedConfig sysConfig;
+SysConfig sysConfig;
+
+String AP_SSID;
+String AP_PASSWORD;
+
+String STA_SSID;
+String STA_PASSWORD;
+int counter = 0;
 void setup()
 {
-  Serial.begin(115200);           // 开启串口通信 波特率115200,串口监视器也要相同波特率,不然会乱码
+  Serial.begin(115200); // 开启串口通信 波特率115200,串口监视器也要相同波特率,不然会乱码
+  while (!Serial)
+    ;
+
   pinMode(LED_BUILTIN, OUTPUT);   // 初始化8266开发板LED信号灯的GPIO口为输出.
   digitalWrite(LED_BUILTIN, LOW); // Mini ESP8266板LED_BUILTIN=GPIO 2,LOW=亮灯,HIGH=灭灯
-  Servo_Init();
-  Feeding_Init();
-  sysConfig.Init();
+
+  if (!sysConfig.LoadWiFiConfig())
+  {
+    Serial.println("main: Can NOT load wifi config from data file.");
+  }
+  else
+  {
+    STA_SSID = sysConfig.getSTA_SSID();
+    STA_PASSWORD = sysConfig.getSTA_PSK();
+    AP_SSID = sysConfig.getAP_SSID();
+    AP_PASSWORD = sysConfig.getAP_PSK();
+    Serial.println("main: init wifi config loaded from data file.");
+  }
 }
 
 void loop()
 {
-  keepRunning();
-  //---------------只监听电脑串口输入指令-------------------
-  if (Serial.available() > 0)
-  {                                 // 有串口数据>0字节
-    String t = Serial.readString(); // 读取串口数据. 数据就是目标角度.
-    t.trim();                       // 删首尾空格与
-    Serial.println(t);              // 串口回显转动的角度.
-    go(t.toFloat());
+  if (counter++ < 1)
+  {
+    if (sysConfig.isFsAvailable())
+    {
+      Serial.println("main: fs available. ");
+      Serial.println("main: fs dir: " + sysConfig.ListFiles());
+      Serial.println("STA_SSID : "+STA_SSID);
+      Serial.println("STA_PASSWORD : "+STA_PASSWORD);
+      Serial.println("AP_SSID : "+AP_SSID);
+      Serial.println("AP_PASSWORD : "+AP_PASSWORD);
+    }
   }
 }
