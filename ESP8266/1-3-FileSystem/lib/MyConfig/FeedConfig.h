@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h> // 参见 https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html
 
-const String CONFIG_FILE = "/config.json";
+const String WIFI_CONFIG_FILE = "/wifi_config.json";
 const size_t capacity = (unsigned int) 2048;
 class FeedConfig
 {
@@ -14,12 +14,14 @@ private:
   String AP_PSK;
   String STA_SSID;
   String STA_PSK;
-  bool isFsAvailable = false;
+  int is_FS_ready; // 0:未初始化 1:初始化完成  -1: FS挂载失败
+  bool isFsAvailable();
 
 public:
   FeedConfig(/* args */);
   ~FeedConfig();
-  void Init();
+  bool LoadWiFiConfig();
+  bool SaveWiFiConfig();
   String getAP_SSID();
   String getAP_PSK();
   String getSTA_SSID();
@@ -28,6 +30,7 @@ public:
 
 FeedConfig::FeedConfig(/* args */)
 {
+  // 默认值
   AP_SSID = "ESP8266"; // ESP8266自已创建的热点名称
   AP_PSK = "12345678"; // 密码
 
@@ -38,17 +41,33 @@ FeedConfig::FeedConfig(/* args */)
 FeedConfig::~FeedConfig()
 {
 }
-void FeedConfig::Init()
+bool FeedConfig::isFsAvailable()
 {
-
-  isFsAvailable = LittleFS.begin();
-  if(!isFsAvailable){
-    Serial.println("Failed to mount FS. So it will use default config.");
-    return;
+  if(is_FS_ready == 0){
+    is_FS_ready = LittleFS.begin()?1;-1;
   }
-  if (LittleFS.exists(CONFIG_FILE))
+  return is_FS_ready == 1;
+}
+bool FeedConfig::SaveWiFiConfig()
+{
+  if (!isFsAvailable())
+  {
+    Serial.println("Failed to mount FS. So it will use default config.");
+    return false;
+  }
+  
+}
+
+bool FeedConfig::LoadWiFiConfig()
+{
+  if (!isFsAvailable())
+  {
+    Serial.println("Failed to mount FS. So it will use default config.");
+    return false;
+  }
+  if (LittleFS.exists(WIFI_CONFIG_FILE))
   {                                           // 如果存在配置文件,从文件中读取配置参数
-    File F = LittleFS.open(CONFIG_FILE, "r"); // 打开读取配置文件
+    File F = LittleFS.open(WIFI_CONFIG_FILE, "r"); // 打开读取配置文件
     F.seek(0);                                // 到首位置
     String S = F.readString();                // 读入文本
     F.close();                                // 关闭文件
@@ -64,17 +83,7 @@ void FeedConfig::Init()
   else
   { // 如果不存在配置文件,使用默认配置参数,并且写入配置文件中.
     Serial.println("config.json not exist. Using default Configuration.");
-    DynamicJsonDocument doc(2048);            // 创建堆内存JSON文档对象
-    doc["AP_SSID"] = AP_SSID;                 // 控制板自己创建的WIFI热点
-    doc["AP_PSK"] = AP_PSK;                   // 控制板自己的WIFI密码
-    doc["STA_SSID"] = STA_SSID;               // 控制板要连接的路由器热点
-    doc["STA_PSK"] = STA_PSK;                 // 控制板要连接的路由器密码
-    File F = LittleFS.open(CONFIG_FILE, "w"); // 创建重写文件
-    serializeJson(doc, F);                    // 输出JSON格式内容到文件
-    serializeJson(doc, Serial);               // 输出JSON格式内容到串口
-    F.flush();
-    F.close(); // 关闭文件
-    doc.clear();
+    return false;
   }
 }
 String FeedConfig::getAP_SSID()
