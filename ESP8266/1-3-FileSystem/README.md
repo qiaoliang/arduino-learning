@@ -94,3 +94,13 @@ STA_PASSWORD : I_am_STA_PASSWORD
 AP_SSID : your_AP_SSID
 AP_PASSWORD : your_AP_PASSWORD
 ```
+
+## 注意事项
+
+- 请确保 `platformio.ini` 文件中启用了 littlefs 选项。
+
+- 请确保 `wifi_config.json` 文件的路径在 `data` 目录下，并且文件名为 `wifi_config.json`，否则将无法正常工作。
+- 请确保 `wifi_config.json` 文件的格式正确，否则将无法正常工作。
+- 请确保 `wifi_config.json` 文件的大小在 1024000 字节以内，否则将无法正常工作。
+- 请确保 `wifi_config.json` 文件的编码格式为 UTF-8，否则将无法正常工作。
+
