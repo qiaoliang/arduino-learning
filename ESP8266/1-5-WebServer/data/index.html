@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>五零小白的硬件实验室</title>
+    <style type="text/css">
+        .btn {
+            width: 60px;
+            height: 40px;
+            font-style: 黑体;
+            font-size: 20px;
+            color: #FF0000;
+        }
+
+        .rge {
+            width: 280px;
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+        <h1>五零小白的硬件实验室-投喂机的网页控制</h1>
+        <p>警告:舵机不防堵。</br>
+        <p> <!-- 喂食转动次数 C -->
+            <button type="button" class="btn" onclick="change('C','CV',-1)">C--</button>
+            <input type="range" class="rge" id="C" min="1" max="10" step="1" value="3" oninput="input('C','CV')"
+                onchange="change('C','CV',0)">
+            <span id="CV">3</span><span>次</span>
+            <button type="button" class="btn" onclick="change('C','CV',+1)">C++</button>
+        </p>
+
+        <p><!-- 喂食转动速度 S -->
+            <button type="button" class="btn" onclick="change('S','SV',-5)">S--</button>
+            <input type="range" class="rge" id="S" min="5" max="20" step="1" value="5" oninput="input('S','SV')"
+                onchange="change('S','SV',0)">
+            <span id="SV">5</span><span>秒</span>
+            <button type="button" class="btn" onclick="change('S','SV',+5)">S++</button>
+        </p>
+
+
+        <p> <!-- 喂食间隔 I -->
+            <button type="button" class="btn" onclick="change('I','IV',-1)">I--</button>
+            <input type="range" class="rge" id="I" min="1" max="24" step="1" value="12" oninput="input('I','IV')"
+                onchange="change('I','IV',0)">
+            <span id="IV">12</span><span>小时</span>
+            <button type="button" class="btn" onclick="change('I','IV',+1)">I++</button>
+        </p>
+
+        <p>指令
+            <input type="text" style="width:340px;height:30px;" name="command" id="command" onkeydown="send()" value=""
+                tabindex="1">
+            <button type="button" style="height:30px;" onclick="sendData(null)" autofocus>发送</button>
+        </p>
+
+        <P>
+            <button type="button" style="height:30px;" onclick="sendData('R')">R 重新初始化指令</button>
+        </P>
+
+        <textarea id="RET" rows="26" cols="64" readonly="readonly">
+这里写使用说明文字。
+    </textarea>
+        <p>
+            <a href='/index.html'>[首页]</a>
+            <!--
+    <a href='/upload.html'     >[上传文件]</a>
+    <a href='/Auto.txt' target="_blank"  id="F">[Auto.txt]</a>
+    <a href='/config'          >[WIFI设置]</a>
+    <a href='/upbin'           >[更新固件]</a>
+-->
+            <a href='/HELP.html'>[操作说明]</a>
+        </p>
+    </center>
+
+
+    <script>
+
+        function sendData(arg) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = ready;
+            if (arg == null) {
+                arg = document.getElementById('command').value;
+            }
+            arg = arg.replace(/\+/g, "_");					//把'+'替换为'_'
+            alert("this is sendData "+arg);
+            xhttp.open("GET", "command?" + arg + "&time=" + new Date().getTime(), true);  //true false
+            xhttp.send();
+        }
+        // 这是页面加载完毕后会被自动执行的函数
+        function ready() {
+            updateCommandTextBox();
+            if (this.readyState == 4 && this.status == 200) {
+                //使用 XMLHttpRequest 对象的 responseText 接收响应数据
+                var txt = this.responseText;
+
+                var obj = document.getElementById("RET");
+                obj.append(txt + '\n');		         //追加文本框内容
+                obj.scrollTop = obj.scrollHeight;
+
+                var i = txt.indexOf("{");
+                if (i >= 0) {
+                    txt = txt.substr(i);              //提取JSON内容
+                    var XYZE = JSON.parse(txt);
+                    if (XYZE.E) {
+                        document.getElementById("C").value = XYZE.C; input("C", "CV");
+                        document.getElementById("S").value = XYZE.S; input("S", "SV");
+                        document.getElementById("I").value = XYZE.I; input("I", "IV");
+                    }
+                }
+            }
+        }
+
+
+        function send() {
+            if (CVent.keyCode == 13) {
+                sendData(document.getElementById('command').value);
+                document.getElementById('command').value = '';
+            }
+        }
+        function updateCommandTextBox(){
+            document.getElementById('command').value = document.getElementById('C').value + " " + document.getElementById('S').value + " " + document.getElementById('I').value;
+        }
+
+        function change(i, j, v) {
+            var value = document.getElementById(i).value;
+            if (v > 0) { value++; if (value > document.getElementById(i).max) value--; }
+            if (v < 0) { value--; if (value < document.getElementById(i).min) value++; }
+            document.getElementById(j).innerHTML = value;
+            updateCommandTextBox();
+            if (0 != v) document.getElementById(i).value = value;
+            value = i + value;
+            sendData(value);
+        }
+
+        function input(i, j) {
+            document.getElementById(j).innerHTML = document.getElementById(i).value;
+        }
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = ready;
+        xhttp.open("GET", "command", true);
+        xhttp.send();
+    </script>
+</body>
+
+</html>
