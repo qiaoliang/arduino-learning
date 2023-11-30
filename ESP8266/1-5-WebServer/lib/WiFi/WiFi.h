@@ -78,15 +78,15 @@ bool Enable_AP(String AP_SSID, String AP_PSK)
 void WiFi_Init(String STA_SSID, String STA_PSK, String AP_SSID, String AP_PSK)
 {
     digitalWrite(LED_BUILTIN, LOW); // 亮灯
-    if (!Enable_STA(STA_SSID, STA_PSK))
+    if (!Enable_STA(STA_SSID, STA_PSK))  // 如果无法连接到路由器,再启动ESP自己的热点.
     {
         Serial.println("WiFi not connected " + STA_SSID);
+        Enable_AP(AP_SSID, AP_PSK);
     }
     else
     {
         Serial.println("WiFi connected to " + STA_SSID);
     }
-    Enable_AP(AP_SSID, AP_PSK);
 }
 
 #endif

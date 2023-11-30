@@ -55,11 +55,11 @@
         </p>
 
         <P>
-            <button type="button" style="height:30px;" onclick="sendData('R')">R 重新初始化指令</button>
+            <button type="button" style="height:30px;" onclick="sendData('FeedNow')">立即投喂</button>
         </P>
 
         <textarea id="RET" rows="26" cols="64" readonly="readonly">
-这里写使用说明文字。
+这里是执行指令后,返回的内容。
     </textarea>
         <p>
             <a href='/index.html'>[首页]</a>
@@ -80,16 +80,15 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = ready;
             if (arg == null) {
-                arg = document.getElementById('command').value;
+                arg = "setting="+document.getElementById('command').value;
             }
-            arg = arg.replace(/\+/g, "_");					//把'+'替换为'_'
-            alert("this is sendData "+arg);
-            xhttp.open("GET", "command?" + arg + "&time=" + new Date().getTime(), true);  //true false
+
+            xhttp.open("GET", "command?" + arg , true);  //true false
             xhttp.send();
         }
         // 这是页面加载完毕后会被自动执行的函数
         function ready() {
-            updateCommandTextBox();
+
             if (this.readyState == 4 && this.status == 200) {
                 //使用 XMLHttpRequest 对象的 responseText 接收响应数据
                 var txt = this.responseText;
@@ -100,6 +99,7 @@
 
                 var i = txt.indexOf("{");
                 if (i >= 0) {
+
                     txt = txt.substr(i);              //提取JSON内容
                     var XYZE = JSON.parse(txt);
                     if (XYZE.E) {
@@ -108,18 +108,14 @@
                         document.getElementById("I").value = XYZE.I; input("I", "IV");
                     }
                 }
+
             }
+            updateCommandTextBox();
         }
 
-
-        function send() {
-            if (CVent.keyCode == 13) {
-                sendData(document.getElementById('command').value);
-                document.getElementById('command').value = '';
-            }
-        }
         function updateCommandTextBox(){
-            document.getElementById('command').value = document.getElementById('C').value + " " + document.getElementById('S').value + " " + document.getElementById('I').value;
+
+            document.getElementById('command').value = '{"C":"'+document.getElementById('C').value + '","S":"' + document.getElementById('S').value + '","I":"' + document.getElementById('I').value+'"}';
         }
 
         function change(i, j, v) {
@@ -130,7 +126,7 @@
             updateCommandTextBox();
             if (0 != v) document.getElementById(i).value = value;
             value = i + value;
-            sendData(value);
+            //sendData(value);
         }
 
         function input(i, j) {
