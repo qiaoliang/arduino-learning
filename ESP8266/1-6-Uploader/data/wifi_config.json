@@ -1,0 +1,6 @@
+{
+    "STA_SSID": "your_STA_SSID",
+    "STA_PSK": "12345678",
+    "AP_SSID": "your_AP_SSID",
+    "AP_PSK": "12345678"
+}
