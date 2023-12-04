@@ -91,7 +91,7 @@ void setting()
 
 void help()
 {
-    responseWithFile("HELP.html");
+    responseWithFile("help.html");
 }
 
 String goFeed()
@@ -165,7 +165,7 @@ void command()
             deserializeJson(doc, server.arg(i)); // 把内容装载到JSON对象
             sysCfg.SaveFeedSetting(doc["C"], doc["S"],doc["I"]);
             goFeed();
-            message += "保存当前设置成功.\n并马上执行一次投喂.\n";
+            message += "保存当前设置成功, 并马上执行一次投喂.\n";
             break;
         }
         if(t.equalsIgnoreCase("FeedNow")){
@@ -186,7 +186,7 @@ void handleFileUpload()
         String filename = UP.filename; // 上传的文件名
         if (!filename.startsWith("/"))
             filename = "/" + filename;  // 为文件名前加上"/"
-        F = LittleFS.open(filename, "w"); // 在SPIFFS中建立W重写文件用于写入用户上传的文件数据
+        F = LittleFS.open(filename, "w"); // 在LittleFS中建立W重写文件用于写入用户上传的文件数据
     }
     if (UP.status == UPLOAD_FILE_WRITE)
     { // 如果上传状态为UPLOAD_FILE_WRITE
